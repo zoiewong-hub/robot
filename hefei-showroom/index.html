@@ -1,0 +1,12 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>合肥展厅 · 空间导览</title><meta name="description" content="1000平方米展厅空间与机器人场景导览"><link rel="stylesheet" href="style.css"></head><body>
+<a class="brand" href="#" hidden aria-hidden="true"></a>
+<main><section class="viewport"><canvas id="scene" aria-label="三维展厅，可拖动旋转、滚轮缩放"></canvas><div id="fallback" hidden>请使用支持 WebGL 的浏览器查看展厅。</div><div id="labels" hidden></div><div id="instruction" hidden></div><div class="loading" id="loading">正在载入展厅…</div></section></main>
+<section class="guide-dock" id="guideDock" aria-label="展厅导览">
+<div class="progress-track"><div id="progress"></div></div>
+<div class="guide-heading"><div class="current-zone"><span id="routeStep">1000㎡ · 8个展区</span><button id="routeMenuBtn" aria-expanded="false">展厅全景⌄</button></div><div class="guide-secondary"><button id="moreInfo" aria-expanded="false">详情</button><button id="viewOptions" aria-expanded="false">视图</button><button id="close" aria-label="收起导览">收起</button></div></div>
+<div id="detail" class="detail" hidden><span id="detailEyebrow" hidden></span><h2 id="detailTitle" hidden></h2><p id="detailDesc"></p><select id="demoSelect" hidden aria-label="看板焦点"></select><div id="demoTabs"></div><div id="screenUI" hidden></div><div id="steps" hidden></div><div id="actionText" aria-live="polite"></div><span id="demoStatus" hidden></span></div>
+<div class="guide-actions"><button id="prev" aria-label="上一站">上一站</button><button id="playDemo" class="primary">开始参观</button><button id="next" aria-label="下一站">下一站</button></div>
+<aside id="routeMenu" class="dock-menu" hidden><div class="menu-heading">选择展区<button id="closeMenu" aria-label="关闭展区目录">关闭</button></div><nav id="nav" aria-label="展区列表"></nav></aside>
+<div id="viewMenu" class="view-tools dock-menu" hidden><button id="reset">返回全景</button><button id="tour">自动导览</button><button id="full">全屏查看</button><button id="labelsBtn" hidden>标注</button></div>
+<span id="viewName" hidden></span><span id="journeyText" hidden></span><span id="counter" hidden></span>
+</section><script src="app.js"></script></body></html>
