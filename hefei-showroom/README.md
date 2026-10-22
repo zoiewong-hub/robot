@@ -26,3 +26,11 @@ GitHub Pages：<https://zoiewong-hub.github.io/robot/hefei-showroom/>
 ## 发布
 
 仓库已有 GitHub Pages 工作流，推送 main 后自动部署。若 Pages 未开启：Settings → Pages → Source 选 GitHub Actions。
+
+## H1 PRO 外观更新（2026-10-22）
+
+按用户提供的产品图重建黑色椭圆面罩、黑色胸部饰板、银色渐变机身、后置升降立柱、双导轨与紫色状态环、圆形关节、带相机的双指夹爪和圆角移动底盘。各展区共用机器人模型，保留原有动作演示。
+
+顶部「视图 → 机器人外观」进入近景；也可直接访问 https://zoiewong-hub.github.io/robot/hefei-showroom/?view=robot 。切换展区可继续参观。
+
+外观按单张参考图近似建模，既有1.6m高度及0.8×0.7m底盘范围保持不变。

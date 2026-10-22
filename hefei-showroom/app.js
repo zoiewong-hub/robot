@@ -51,7 +51,7 @@ aiViewButton.onclick=()=>{const capture=aiViewButton.textContent==='采集视角
 const industryViewButton=document.createElement('button');industryViewButton.textContent='工业说明';industryViewButton.hidden=true;industryViewButton.onclick=()=>{const showWall=industryViewButton.textContent==='工业说明';goal=showWall?{target:[P(524,238)[0],1.55,P(524,238)[1]],yaw:0,pitch:.06,radius:4.8}:{target:[zones[8].p[0],1.2,zones[8].p[1]],yaw:1.72,pitch:.70,radius:8.8};industryViewButton.textContent=showWall?'三机演示':'工业说明'};$('.view-tools').prepend(industryViewButton);
 const gl=canvas.getContext('webgl',{antialias:true,alpha:true,preserveDrawingBuffer:true});
 if(!gl){$('#fallback').hidden=false;$('#loading').style.display='none';throw new Error('WebGL unavailable')}
-const vsrc=`attribute vec3 aPos;attribute vec3 aNormal;attribute vec3 aColor;uniform mat4 uVP;uniform mat4 uModel;uniform mat4 uLightVP;varying vec3 vN;varying vec3 vP;varying vec3 vC;varying vec4 vLight;void main(){vec4 w=uModel*vec4(aPos,1.);vP=w.xyz;vN=mat3(uModel)*aNormal;vC=aColor;vLight=uLightVP*w;gl_Position=uVP*w;}`;
+const vsrc=`attribute vec3 aPos;attribute vec3 aNormal;attribute vec3 aColor;uniform mat4 uVP;uniform mat4 uModel;uniform mat4 uLightVP;varying vec3 vN;varying vec3 vP;varying vec3 vC;varying vec4 vLight;void main(){vec4 w=uModel*vec4(aPos,1.);vP=w.xyz;mat3 nm=mat3(uModel);nm[0]/=dot(nm[0],nm[0]);nm[1]/=dot(nm[1],nm[1]);nm[2]/=dot(nm[2],nm[2]);vN=nm*aNormal;vC=aColor;vLight=uLightVP*w;gl_Position=uVP*w;}`;
 const fsrc=`precision highp float;
 varying vec3 vN; varying vec3 vP; varying vec3 vC; varying vec4 vLight;
 uniform sampler2D uShadow; uniform sampler2D uMaterials;
@@ -281,26 +281,86 @@ const orbital=build(()=>{const points=[[-2.8,3.64,-1.2],[1.0,3.80,-.55],[-2.1,3.
 function roundedBox(x,y,z,w,h,d,r,col){const N=12,bevel=Math.min(.018,h*.14,r*.22),levels=[[-h/2,bevel,-.7],[-h/2+bevel,0,0],[h/2-bevel,0,0],[h/2,bevel,.7]],point=(j,k,l)=>{let a=(j*90+k/N*90)*Math.PI/180,lv=levels[l],rad=r-lv[1];return[x+(j===0||j===3?1:-1)*(w/2-r)+Math.cos(a)*rad,y+lv[0],z+(j<2?1:-1)*(d/2-r)+Math.sin(a)*rad]},normal=(j,k,l)=>{let a=(j*90+k/N*90)*Math.PI/180;return norm([Math.cos(a),levels[l][2],Math.sin(a)])};for(let j=0;j<4;j++)for(let k=0;k<=N;k++){const nj=k===N?(j+1)%4:j,nk=k===N?0:k+1;for(let l=0;l<3;l++){let a=point(j,k,l),b=point(nj,nk,l),c=point(j,k,l+1),d=point(nj,nk,l+1);smoothTri(a,b,c,normal(j,k,l),normal(nj,nk,l),normal(j,k,l+1),col);smoothTri(b,d,c,normal(nj,nk,l),normal(nj,nk,l+1),normal(j,k,l+1),col)}for(const l of [0,3])tri([x,y+levels[l][0],z],point(j,k,l),point(nj,nk,l),[0,l===0?-1:1,0],col)}}
 function shell(x,z,rings,col){const N=64,point=(r,t)=>[x+Math.cos(t)*r[1],r[0],z+Math.sin(t)*r[2]],normal=(j,t)=>{const p=rings[Math.max(0,j-1)],q=rings[Math.min(rings.length-1,j+1)],r=rings[j],dy=Math.max(.001,q[0]-p[0]),sx=(q[1]-p[1])/dy,sz=(q[2]-p[2])/dy;return norm([Math.cos(t)/r[1],-sx*Math.cos(t)*Math.cos(t)/r[1]-sz*Math.sin(t)*Math.sin(t)/r[2],Math.sin(t)/r[2]])};for(let j=0;j<rings.length-1;j++)for(let i=0;i<N;i++){const a=i/N*Math.PI*2,b=(i+1)/N*Math.PI*2,p=rings[j],q=rings[j+1];smoothTri(point(p,a),point(q,a),point(p,b),normal(j,a),normal(j+1,a),normal(j,b),col);smoothTri(point(p,b),point(q,a),point(q,b),normal(j,b),normal(j+1,a),normal(j+1,b),col)}}
 const silver=[.82,.84,.87],black=[.055,.06,.065];
-// H1 PRO silhouette from the user's supplied product reference: silver mast,
-// forward tapered torso, black oval face, paired grippers, rounded mobile base.
+// H1 PRO: reference-derived geometry in metres, shared by every mobile robot.
+// The photo defines appearance; the existing 0.8 x 0.7 x 1.6 m envelope is retained.
 const robotBody=build(()=>{
- // Geometry is authored directly in metres. Slender mast, torso and arms retain the exact overall envelope.
- roundedBox(0,.045,0,.70,.09,.80,.16,black);
- roundedBox(0,.16,0,.65,.18,.75,.15,silver);roundedBox(0,.255,0,.62,.025,.72,.14,black);
- for(const x of [-.24,.24])for(const z of [-.27,.27])sphere(x,.055,z,.065,.05,.067,[.18,.19,.21]);
- roundedBox(0,.15,.379,.34,.027,.012,.01,C.light);
- cyl(0,.785,-.15,.067,1.08,silver,48);cyl(0,1.31,-.15,.071,.025,black,48);
- for(const x of [-.035,.025])box(x,.79,-.080,.006,1.00,.008,black);
- shell(0,.035,[[1.00,.115,.075],[1.08,.145,.09],[1.20,.195,.115],[1.29,.205,.115],[1.35,.14,.08],[1.38,.09,.065]],silver);
- for(const side of [-1,1])sphere(side*.225,1.27,.035,.065,.075,.065,silver);
- cyl(0,1.39,.035,.045,.105,black,32);sphere(0,1.48,.035,.105,.12,.085,silver);
- sphere(0,1.485,.111,.086,.070,.018,black);sphere(.036,1.50,.130,.009,.009,.004,C.light);
- roundedBox(0,1.16,.147,.13,.018,.006,.006,C.dark);
+ roundedBox(0,.036,0,.70,.072,.80,.16,black);
+ roundedBox(0,.185,0,.676,.244,.77,.155,silver);
+ roundedBox(0,.311,-.018,.648,.018,.728,.15,black);
+ for(const x of [-.245,.245])for(const z of [-.26,.26]){
+  sphere(x,.047,z,.058,.047,.060,[.20,.17,.10]);
+  sphere(x,.047,z,.027,.028,.061,C.metal);
+ }
+ roundedBox(0,.205,.387,.30,.027,.008,.003,C.light);
+ roundedBox(0,.095,.391,.36,.018,.008,.003,black);
+ // Broad rear lift column, black crown, violet status seam and twin guide rails.
+ roundedBox(0,.862,-.194,.224,1.084,.185,.074,silver);
+ roundedBox(0,1.411,-.194,.227,.035,.188,.074,black);
+ roundedBox(0,1.391,-.194,.227,.004,.189,.073,C.purple);
+ for(const x of [-.050,.050])roundedBox(x,.865,-.099,.005,.982,.004,.001,black);
+ for(const x of [-.115,.115])roundedBox(x,.86,-.194,.005,.99,.065,.002,C.metal);
+ // Forward cantilever and tapered chest; the front is positive Z.
+ roundedBox(0,1.25,-.097,.24,.10,.19,.035,silver);
+ shell(0,.045,[[.976,.102,.069],[.995,.115,.077],[1.035,.124,.083],
+  [1.12,.145,.094],[1.24,.178,.110],[1.29,.181,.109],
+  [1.33,.155,.090],[1.355,.106,.061],[1.366,.068,.046]],silver);
+ sphere(0,.976,.046,.104,.055,.071,silver);
+ roundedBox(0,1.009,.132,.083,.016,.008,.004,black);
+ roundedBox(0,1.055,.138,.020,.004,.003,.001,black);
+ for(const side of [-1,1])sphere(side*.213,1.278,.040,.070,.076,.065,silver);
+ cyl(0,1.385,.046,.041,.075,black,48);
+ // Keep the body's measured top at 1.600 m, including the black head.
+ sphere(0,1.482,.046,.095,.118,.076,black);
+ // Side ventilation grille and recessed service panel on both flanks.
+ for(const side of [-1,1]){
+  for(let j=0;j<12;j++)box(side*.339,.165+j*.004,-.055,.003,.0015,.145,C.metal);
+  for(let j=0;j<9;j++)box(side*.340,.20+(j-4)*.005,.10,.003,.002,Math.sqrt(1-((j-4)/5)**2)*.062,black);
+ }
 });
+const robotTrim=build(()=>{
+ // Full-height glossy black oval visor with no invented eyes or facial display.
+ sphere(0,1.486,.088,.087,.111,.045,[.012,.014,.017]);
+ // Curved dark collar/bib, following the sloping upper chest surface.
+ const rows=[[1.205,.085,.156],[1.22,.101,.159],[1.28,.124,.165],[1.315,.103,.149],[1.345,.065,.119]];
+ for(let j=0;j<rows.length-1;j++)for(let i=0;i<24;i++){
+  const point=(r,k)=>{const u=(k/24*2-1);return[u*r[1],r[0],r[2]-.029*u*u]};
+  const a=point(rows[j],i),b=point(rows[j],i+1),c=point(rows[j+1],i),d=point(rows[j+1],i+1),n=norm(cross(sub(b,a),sub(c,a)));
+  tri(a,b,c,n,[.045,.047,.052]);tri(b,d,c,n,[.045,.047,.052]);
+ }
+ roundedBox(0,1.217,.163,.12,.020,.007,.008,[.012,.014,.017]);
+});robotTrim.finish=.10;
 
 const singleArm=build(()=>{cyl(0,.25,0,.28,.50,C.dark);sphere(0,.56,0,.19,.19,.19,C.white);box(0,.90,0,.20,.65,.20,C.white);sphere(0,1.22,0,.15,.15,.15,C.dark);box(0,1.32,.24,.15,.18,.52,C.white);sphere(0,1.32,.5,.13,.13,.13,C.purple);box(0,1.2,.57,.14,.25,.12,C.dark);box(-.09,1.1,.57,.06,.16,.06,C.white);box(.09,1.1,.57,.06,.16,.06,C.white)});
-const link=build(()=>{cyl(0,.5,0,.045,1,silver,48,.037);cyl(0,.04,0,.047,.045,C.metal,40);cyl(0,.96,0,.040,.035,C.dark,40)}),joint=build(()=>sphere(0,0,0,.057,.057,.057,C.dark)),grip=build(()=>{roundedBox(0,.015,0,.155,.12,.105,.012,[.22,.24,.26]);box(0,-.047,0,.18,.018,.075,C.metal);for(const x of [-.078,.078]){box(x,-.105,0,.024,.115,.055,silver);box(x-Math.sign(x)*.013,-.132,0,.009,.055,.050,C.dark);sphere(x,.043,.055,.009,.009,.004,C.metal)}box(0,.022,.055,.072,.019,.004,C.cream)}),item=build(()=>{box(0,0,0,.20,.26,.18,C.orange)}),toy=build(()=>sphere(0,0,0,.14,.14,.14,C.orange)),part=build(()=>{cyl(0,0,0,.07,.16,C.metal,6);cyl(0,.10,0,.12,.04,C.metal,6)});
-robotBody.finish=.86;singleArm.finish=.78;link.finish=.82;grip.finish=.62;joint.finish=.12;part.finish=.83;
+const link=build(()=>{
+ shell(0,0,[[0,.043,.041],[.05,.055,.052],[.15,.061,.056],[.32,.059,.054],
+  [.72,.050,.047],[.89,.045,.043],[.96,.039,.038],[1,.035,.035]],silver);
+ cyl(0,.04,0,.047,.025,C.metal,48);cyl(0,.96,0,.040,.024,black,48);
+}),joint=build(()=>{
+ sphere(0,0,0,.064,.064,.061,silver);
+ localFrame(0,0,0,()=>{
+  const start=verts.length;cyl(0,0,0,.046,.133,black,48);
+  cyl(0,.069,0,.040,.008,silver,48);cyl(0,-.069,0,.040,.008,silver,48);
+  cyl(0,.074,0,.031,.003,C.metal,48);cyl(0,-.074,0,.031,.003,C.metal,48);
+  // Rotate the circular bearing axis from Y to X.
+  for(let i=start;i<verts.length;i+=9){const y=verts[i+1],ny=verts[i+4];verts[i+1]=verts[i];verts[i]=y;verts[i+4]=verts[i+3];verts[i+3]=ny;}
+ });
+}),grip=build(()=>{
+ cyl(0,.057,0,.042,.036,black,48);cyl(0,.032,0,.048,.022,silver,48);
+ roundedBox(0,-.005,0,.115,.075,.086,.013,silver);
+ roundedBox(0,-.047,0,.139,.016,.078,.006,black);
+ for(const side of [-1,1]){
+  roundedBox(side*.058,-.078,0,.028,.058,.055,.009,silver);
+  roundedBox(side*.051,-.119,.006,.038,.044,.066,.012,silver);
+  roundedBox(side*.032,-.120,.008,.008,.032,.052,.003,black);
+  for(const z of [-.029,.029])sphere(side*.058,-.070,z,.009,.009,.003,C.dark);
+ }
+ roundedBox(.079,.005,-.015,.040,.048,.036,.004,C.metal);
+ for(const x of [.069,.086])box(x,.006,.004,.007,.009,.003,black);
+ // Short protected cable from the wrist to the gripper camera.
+ for(let i=0;i<8;i++){const a=i/8*Math.PI;sphere(.068+Math.sin(a)*.023,.040+Math.cos(a)*.037,-.021,.004,.008,.004,black);}
+}),item=build(()=>{box(0,0,0,.20,.26,.18,C.orange)}),toy=build(()=>sphere(0,0,0,.14,.14,.14,C.orange)),part=build(()=>{cyl(0,0,0,.07,.16,C.metal,6);cyl(0,.10,0,.12,.04,C.metal,6)});
+robotBody.finish=.82;singleArm.finish=.78;link.finish=.80;grip.finish=.68;joint.finish=.67;part.finish=.83;
+
 function world(px,py,rot,x,y,z){const p=P(px,py);return[p[0]+x*Math.cos(rot)+z*Math.sin(rot),y,p[1]-x*Math.sin(rot)+z*Math.cos(rot)]}
 const hwRot=-Math.PI*3/4;
 const robots=[
@@ -320,13 +380,14 @@ const fixedBody=build(()=>{roundedBox(0,.09,0,.70,.18,.58,.04,C.dark);box(0,.72,
 const cobotBody=build(()=>{roundedBox(0,.10,0,.65,.20,.60,.035,C.dark);cyl(0,.62,0,.13,1.05,C.metal);cyl(0,1.2,0,.17,.13,silver)});cobotBody.finish=.8;
 const mix=(a,b,t)=>a.map((v,i)=>v+(b[i]-v)*t),ease=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
 function path(keys,t){if(t<=keys[0][0])return keys[0][1];for(let i=1;i<keys.length;i++)if(t<=keys[i][0])return mix(keys[i-1][1],keys[i][1],ease((t-keys[i-1][0])/(keys[i][0]-keys[i-1][0])));return keys.at(-1)[1]}
-function drawBody(mat){draw(robotBody,mat)}
+function drawBody(mat){draw(robotBody,mat);draw(robotTrim,mat);if(!shadowPass)drawRobotBrand(mat)}
 function arm(base,side,hand,kind=0,high=false){
- const shoulder=[side*.225,1.27,.035],v=sub(hand,shoulder),d=Math.hypot(...v),mid=mix(shoulder,hand,.5);
- // Bend the elbow outward; no straight link crosses through the torso.
- const bend=Math.min(.27,Math.sqrt(Math.max(.015,.49*.49-d*d/4)));
- const lateral=norm([side,0,-side*v[0]/Math.max(.25,Math.abs(v[2]))]);const elbow=mid.map((p,i)=>p+lateral[i]*bend);
- draw(link,mul(base,linkBetween(shoulder,elbow)));draw(link,mul(base,linkBetween(elbow,hand)));draw(joint,mul(base,model(...shoulder)));draw(joint,mul(base,model(...elbow)));draw(grip,mul(base,model(...hand,.80,.80,.80)));
+ const shoulder=[side*.213,1.278,.040],v=sub(hand,shoulder),d=Math.hypot(...v),mid=mix(shoulder,hand,.5);
+ const direction=norm(v),pole=[side*.55,-1,-.35],along=dot(pole,direction);
+ const bendDirection=norm(pole.map((p,i)=>p-along*direction[i]));
+ const bend=Math.min(.29,Math.sqrt(Math.max(.003,.34*.34-d*d/4)));
+ const elbow=mid.map((p,i)=>p+bendDirection[i]*bend);
+ draw(link,mul(base,linkBetween(shoulder,elbow)));draw(link,mul(base,linkBetween(elbow,hand)));draw(joint,mul(base,model(...shoulder)));draw(joint,mul(base,model(...elbow)));const wrist=model(...hand,.80,.80,.80);if(!danceRunning&&current===9&&hand[1]>1.3){wrist[5]*=-1;wrist[10]*=-1}draw(grip,mul(base,wrist));
 }
 
 function drawRobot(r,time){if(r.zone===5){drawHardware(r,time);return}const t=r.zone===current?Math.min(time,r.zone===8?19.2:12):0,pos=r.pos,origin=world(...r.frame,...pos),base=model(...origin,1,1,1,r.frame[2]);if(r.zone!==2)drawBody(base);let hand=[.23,.92,.43],other=[-.23,.92,.43];
@@ -359,7 +420,7 @@ function hardwareBase(a,r,y=0){return model(hub[0]+Math.cos(a)*r,y,hub[1]+Math.s
 function drawHardware(r,time){const t=current===5?Math.min(time,12):0,f=t/12,base=hardwareBase(r.angle,r.kind===0?9.90:9.23),hand=path([[0,[-.18,1.07,.48]],[.2,[-.18,.98,.48]],[.45,[0,1.19,.52]],[.70,[.18,.98,.65]],[.85,[.18,.98,.65]],[1,[.20,1.09,.45]]],f);let mat=base;
 if(r.kind===0){drawBody(base);hand[2]+=.34;arm(base,1,hand);arm(base,-1,[-.23,.93,.40]);}else{draw(benchBase,mul(base,model(0,.89,0)));const shoulder=[0,1.10,0],elbow=[r.kind===1?.10:-.10,1.43,.20];draw(benchLink,mul(base,linkBetween(shoulder,elbow)));draw(benchLink,mul(base,linkBetween(elbow,hand)));draw(benchJoint,mul(base,model(...shoulder)));draw(benchJoint,mul(base,model(...elbow)));draw(t0,mul(base,model(...hand)));}
 const z=r.kind===0?.82:.48,obj=f<.2?[-.18,.95,z]:f<.85?[hand[0],hand[1]-.11,hand[2]]:[.18,.95,z+.17];draw(r.task===0?part:r.task===2?cardMesh:item,mul(mat,model(...obj,.7,.7,.7)));}
-function drawDance(time){const t=time,turn=Math.sin(t*.65)*.22,base=mul(model(hub[0]+Math.sin(t*.7)*.16,.18,hub[1],1,1,1,Math.atan2(eye[0]-hub[0],eye[2]-hub[1])+turn),I());drawBody(base);arm(base,1,[.35+.08*Math.sin(t*1.9),1.12+.25*Math.sin(t*2.0),.26]);arm(base,-1,[-.35+.08*Math.cos(t*1.9),1.12+.25*Math.cos(t*2.0),.26]);}
+function drawDance(time){const t=time,turn=Math.sin(t*.65)*.22,base=mul(model(hub[0]+Math.sin(t*.7)*.16,.18,hub[1],1,1,1,danceRunning?Math.atan2(eye[0]-hub[0],eye[2]-hub[1])+turn:0),I());drawBody(base);arm(base,1,danceRunning?[.35+.08*Math.sin(t*1.9),1.12+.25*Math.sin(t*2.0),.26]:[.29,1.39,.24]);arm(base,-1,danceRunning?[-.35+.08*Math.cos(t*1.9),1.12+.25*Math.cos(t*2.0),.26]:[-.20,.90,.34]);}
 const packageLid=build(()=>{box(0,0,0,.7,.025,.55,C.wood);box(0,.018,0,.07,.012,.55,C.cream)});
 const humanBody=build(()=>{for(const x of [-.14,.14]){roundedBox(x,.06,0,.19,.12,.36,.05,C.dark);cyl(x,.49,-.06,.085,.78,[.19,.21,.24])}shell(0,-.06,[[.86,.22,.14],[1.10,.22,.15],[1.43,.27,.15],[1.52,.18,.12]],[.42,.44,.46]);cyl(0,1.56,-.06,.07,.12,[.58,.44,.34]);sphere(0,1.73,-.06,.12,.17,.12,[.58,.44,.34]);sphere(0,1.82,-.08,.12,.10,.115,C.dark)});
 const gloveMesh=build(()=>{roundedBox(0,0,0,.09,.05,.12,.02,C.dark);for(let i=0;i<4;i++){box(-.035+i*.023,-.01,.09,.016,.03,.09,C.dark);cyl(-.035+i*.023,.025,.05,.008,.01,C.metal)}box(.064,0,.025,.05,.035,.025,C.dark)});
@@ -484,6 +545,11 @@ function texMesh(m,t,mat){gl.useProgram(texProgram);gl.uniformMatrix4fv(tx.vp,fa
 const planetMesh={buffer:gl.createBuffer(),count:64*32*6};{const v=[],p=(i,j)=>{let u=i/64,t=j/32,ph=u*Math.PI*2,th=t*Math.PI;return[Math.sin(th)*Math.cos(ph),Math.cos(th),Math.sin(th)*Math.sin(ph),u,t]};for(let j=0;j<32;j++)for(let i=0;i<64;i++)for(const q of [p(i,j),p(i+1,j),p(i+1,j+1),p(i,j),p(i+1,j+1),p(i,j+1)])v.push(...q);gl.bindBuffer(gl.ARRAY_BUFFER,planetMesh.buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(v),gl.STATIC_DRAW)}
 const planetTex=[0,1,2].map(kind=>textSurface(1024,512,(c,w,h)=>{const im=c.createImageData(w,h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let lon=x/w*Math.PI*2,lat=y/h*Math.PI,f=Math.sin(lon*3+Math.sin(lat*5)*2)+.5*Math.sin(lon*7-lat*9)+.23*Math.sin(lon*19+lat*17),cloud=Math.sin(lon*24+lat*27)+Math.sin(lon*17-lat*13),col;if(kind===0){col=f>.22?[.29,.40,.22]:[.055,.23,.52];if(Math.abs(y/h-.5)>.43)col=[.88,.91,.93];else if(cloud>1.30)col=col.map(v=>v*.35+.63)}else if(kind===1){let band=Math.sin(lat*51+Math.sin(lon*4+lat*7)*.8);col=[.64+band*.13,.43+band*.10,.31+band*.08]}else{const grain=Math.sin(lon*83+lat*71)*.035;col=[.64+f*.07+grain,.21+f*.04,.09+f*.02]}const shade=.60+.40*Math.max(0,Math.cos(lon-.8)*Math.sin(lat));const k=(y*w+x)*4;for(let n=0;n<3;n++)im.data[k+n]=Math.min(255,col[n]*255*shade);im.data[k+3]=255}c.putImageData(im,0,0)}));
 function drawPlanets(){if(!ringVisible)return;const p=[[hub[0]+2.3,3.45,hub[1]-1.6,.56,0],[hub[0]-2.2,3.35,hub[1]-1.5,.89,1],[hub[0]+1.65,3.32,hub[1]+2.0,.33,2]];for(const a of p)texMesh(planetMesh,planetTex[a[4]],model(a[0],a[1],a[2],a[3],a[3],a[3]));if(current===1)texMesh(skyMesh,skyTex,I())}
+const robotBrand=textSurface(512,128,(c,w,h)=>{c.fillStyle='#d4d5d8';c.font='italic 48px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('ZERITH',w/2,h/2)});
+const robotBaseBrand=textSurface(512,128,(c,w,h)=>{c.fillStyle='#25262a';c.font='42px Arial';c.textAlign='center';c.textBaseline='middle';c.fillText('ZERITH  /  H1 PRO',w/2,h/2)});
+function robotDecal(t,mat,x,y,z,w,h){const m=mul(mat,model(x,y,z,w,h,1));texMesh({buffer:quad,count:6},t,m)}
+function drawRobotBrand(mat){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);robotDecal(robotBrand,mat,0,1.274,.170,.112,.027);robotDecal(robotBaseBrand,mat,0,.130,.388,.245,.045);gl.disable(gl.BLEND)}
+
 const materialAtlas=gl.createTexture();
 {const c=document.createElement('canvas');c.width=512;c.height=1536;const ctx=c.getContext('2d'),im=ctx.createImageData(512,1536);const hash=(x,y)=>{let v=Math.imul(x+131,y+9271)^Math.imul(x+23,374761393);v=(v^(v>>>13))*1274126177;return((v^(v>>>16))>>>0)/4294967295};for(let band=0;band<3;band++)for(let y=0;y<512;y++)for(let x=0;x<512;x++){const rnd=hash(x,y),broad=Math.sin(y*.035+Math.sin(x*.009)*2.5),vein=Math.sin(x*.22+Math.sin(y*.016)*5+Math.sin(y*.07)*.8);let val;if(band===0)val=.58+vein*.12+broad*.07+rnd*.10;else if(band===1)val=.56+rnd*.15+(rnd>.985?.16:0)+Math.sin(x*.018+y*.029)*.02;else val=.58+Math.sin(x*Math.PI)*.03+((x%3===0||y%3===0)?-.08:.04)+rnd*.08;const i=((band*512+y)*512+x)*4;im.data[i]=im.data[i+1]=im.data[i+2]=Math.max(0,Math.min(255,val*255));im.data[i+3]=255}ctx.putImageData(im,0,0);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,materialAtlas);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.activeTexture(gl.TEXTURE0)}
 
@@ -541,4 +607,11 @@ $('#next').onclick=()=>{tourAuto=false;selectZone(routeOrder[(routeOrder.indexOf
 $('#playDemo').onclick=()=>{if(current===0){tourAuto=false;selectZone(1)}else if([1,3,9].includes(current)){$('#next').click()}else{demoRunning=!demoRunning;if(demoRunning&&demoTime>=zones[current].steps.length*2.4){demoTime=0;stepIndex=-1}refreshDock()}};
 const refreshBeforeRoute=refreshDock;refreshDock=function(){refreshBeforeRoute();if(current===9){$('#playDemo').textContent='前往咖啡吧台';$('#actionText').hidden=true}$('#routeStep').textContent=current?String(routeOrder.indexOf(current)).padStart(2,'0')+' / 09':'1000㎡ · 9站导览';};
 eye=[target[0]+Math.sin(yaw)*Math.cos(pitch)*radius,target[1]+Math.sin(pitch)*radius,target[2]+Math.cos(yaw)*Math.cos(pitch)*radius];
-resize();selectZone(0);requestAnimationFrame(frame);$('#loading').style.display='none';window.showroom={selectZone,getState:()=>({current,demoRunning,stepIndex,tourAuto,activeModule,webgl:!!gl,floorArea:FLOOR_AREA,planScale:MAP.scale,robotCount:robots.length,robotBodyBounds:robotBody.bounds,robotScale:ROBOT_SCALE,robotDimensions:{length:.8,width:.7,height:1.6},cartBounds:calibratedCartBounds,shopDimensions:{width:5,depth:3},wallHeight:WALL_HEIGHT,ringVisible,ringMode,eye:eye.slice(),target:target.slice(),goal,coffeeCounterHeight:.8,collectorDeskHeight:.84,coffeeRobotHeight:1.6,industrialRobotsBehindDesk:true,roundedDesks:true,danceTime,benchArms:2,vertices:architecture.count+furniture.count}),project};
+resize();selectZone(0);requestAnimationFrame(frame);$('#loading').style.display='none';window.showroom={selectZone,getState:()=>({current,demoRunning,stepIndex,tourAuto,activeModule,webgl:!!gl,floorArea:FLOOR_AREA,planScale:MAP.scale,robotCount:robots.length,robotBodyBounds:robotBody.bounds,robotScale:ROBOT_SCALE,robotAppearance:"h1-pro-reference-v2",robotAppearanceFeatures:["black-oval-visor","silver-tapered-chest","rear-lift-column","violet-status-ring","articulated-grippers","rounded-mobile-base"],robotDimensions:{length:.8,width:.7,height:1.6},cartBounds:calibratedCartBounds,shopDimensions:{width:5,depth:3},wallHeight:WALL_HEIGHT,ringVisible,ringMode,eye:eye.slice(),target:target.slice(),goal,coffeeCounterHeight:.8,collectorDeskHeight:.84,coffeeRobotHeight:1.6,industrialRobotsBehindDesk:true,roundedDesks:true,danceTime,benchArms:2,vertices:architecture.count+furniture.count}),project};
+
+const robotViewButton=document.createElement('button');robotViewButton.textContent='机器人外观';
+robotViewButton.onclick=()=>{selectZone(9);ringMode='hide';danceRunning=false;danceTime=.55;goal={target:[hub[0],1.02,hub[1]],yaw:.55,pitch:.07,radius:canvas.clientWidth/canvas.clientHeight<.8?3.7:2.85};renderSignature='';refreshDock()};$('.view-tools').append(robotViewButton);
+const beforeRobotInspectionSelect=selectZone;selectZone=function(i){danceRunning=true;beforeRobotInspectionSelect(i)};
+window.showroom.selectZone=selectZone;
+
+if(new URLSearchParams(location.search).get('view')==='robot')robotViewButton.click();
