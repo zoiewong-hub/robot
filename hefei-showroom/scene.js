@@ -6,9 +6,9 @@ const mix=blend;
 function atFrame(f,fn){localFrame(f.x,f.z,f.rot,fn)}
 function matFrame(f,x=0,y=0,z=0,scale=1){return mul(model(f.x,0,f.z,1,1,1,f.rot),model(x,y,z,scale,scale,scale))}
 function pointFrame(f,x,y,z){return[f.x+x*Math.cos(f.rot)+z*Math.sin(f.rot),y,f.z-x*Math.sin(f.rot)+z*Math.cos(f.rot)]}
-function stationFrame(id,radius){const z=D.zones.find(z=>z.id===id),a=Math.atan2(z.p[1],z.p[0]);return{x:radius?Math.cos(a)*radius:z.p[0],z:radius?Math.sin(a)*radius:z.p[1],rot:-Math.PI/2-a,angle:a}}
+function stationFrame(id,radius){if(D.floorplan?.frames[id])return{...D.floorplan.frames[id]};const z=D.zones.find(z=>z.id===id),a=Math.atan2(z.p[1],z.p[0]);return{x:radius?Math.cos(a)*radius:z.p[0],z:radius?Math.sin(a)*radius:z.p[1],rot:-Math.PI/2-a,angle:a}}
 for(const z of D.zones)frames[z.id]=stationFrame(z.id);
-frames.shop={x:-5.6,z:-12.15,rot:.12};
+frames.shop=stationFrame('shop');
 frames.warehouse={x:D.layout.warehouse.x,z:D.layout.warehouse.z,rot:0};
 frames.ai=stationFrame('ai');
 function segment(a,b,r=.012,col=C.lilac){const m=linkBetween(a,b),start=verts.length;cyl(0,.5,0,r,1,col,16);for(let i=start;i<verts.length;i+=9){const p=[verts[i],verts[i+1],verts[i+2]],n=[verts[i+3],verts[i+4],verts[i+5]];for(let j=0;j<3;j++){verts[i+j]=m[j]*p[0]+m[4+j]*p[1]+m[8+j]*p[2]+m[12+j];const ny=m[4+j]/Math.hypot(m[4],m[5],m[6]);verts[i+3+j]=m[j]*n[0]+ny*n[1]+m[8+j]*n[2]}}}
@@ -17,14 +17,14 @@ function slab(x,z,w,d,col=C.floor){roundedBox(x,-.10,z,w,.20,d,.10,col)}
 function tray(x,y,z,w=.55,d=.48,col=color.blue){box(x,y,z,w,.035,d,col);for(const dx of [-w/2,w/2])box(x+dx,y+.08,z,.022,.16,d,col);for(const dz of [-d/2,d/2])box(x,y+.08,z+dz,w,.16,.022,col)}
 function worktable(w=2.5,d=1.3,h=.80){curvedWorktable(w,d,h)}
 function titleTexture(text,{sub='',light=false,bg=null,width=1024,height=220}={}){return textSurface(width,height,(c,w,h)=>{if(bg){c.fillStyle=bg;c.fillRect(0,0,w,h)}c.textAlign='center';c.textBaseline='middle';c.font='600 '+Math.min(78,Math.floor(w/(text.length*.75)))+'px Microsoft YaHei';if(light){c.shadowColor='#b593ff';c.shadowBlur=13}c.fillStyle=light?'#76558f':'#3b3452';c.fillText(text,w/2,h*(sub?.38:.5));c.shadowBlur=0;if(sub){c.font='24px Microsoft YaHei';c.fillStyle=light?'#9987a8':'#797185';c.fillText(sub,w/2,h*.78)}})}
-function addLabel(text,f,x,y,z,w,h,options={}){const tex=titleTexture(text,options);const item={text,texture:tex,mat:mul(model(f.x,0,f.z,1,1,1,f.rot),model(x,y,z,w,h,1))};labels3D.push(item);return item}
-function addScreen(f,x,y,z,w,h,texture,system){const item={texture,mat:I(),mesh:curvedScreenSurface(f,x,y,z,w,h),system,curved:true,wallRadius:13.23};screenPanels.push(item);const a=Math.atan2(f.z,f.x)+x/13.23;arcWall(13.29,a-(w+.10)/26.46,a+(w+.10)/26.46,y-h/2-.05,h+.10,.10,[.72,.70,.77]);arcWall(13.218,a-w/26.46,a+w/26.46,y-h/2-.025,.013,.008,C.lilac);return item}
+function addLabel(text,f,x,y,z,w,h,options={}){const tex=titleTexture(text,options);const item={text,owner:f.id||options.owner||null,texture:tex,mat:mul(model(f.x,0,f.z,1,1,1,f.rot),model(x,y,z,w,h,1))};labels3D.push(item);return item}
+function addScreen(f,x,y,z,w,h,texture,system){const profile=D.floorplan.wallProfiles[f.id],item={texture,mat:I(),mesh:curvedScreenSurface(f,x,y,z,w,h),system,curved:true,wallRadius:profile?.radius||13.23};screenPanels.push(item);const N=40;for(const side of [-1,1])for(let i=0;i<N;i++){const a=wallScreenPoint(f,x-w/2+i/N*w,y+side*(h/2+.035),z),b=wallScreenPoint(f,x-w/2+(i+1)/N*w,y+side*(h/2+.035),z);segment(a,b,.036,[.73,.70,.79])}for(const side of [-1,1])segment(wallScreenPoint(f,x+side*(w/2+.035),y-h/2,z),wallScreenPoint(f,x+side*(w/2+.035),y+h/2,z),.036,[.73,.70,.79]);return item}
 function loadAsset(name,url){const tex=textSurface(512,256,c=>{c.fillStyle='#171c29';c.fillRect(0,0,512,256)}),im=new Image();im.onload=()=>{gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,tex.texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im);window.sceneDirty=true};im.src=url;assetTextures[name]=tex;return tex}
 const filmTexture=loadAsset('film','assets/brand-film.webp');
 const floorMesh=buildRevisedFloor();
-const wallSections=Array.from({length:32},(_,i)=>{const a=-Math.PI/2+i/32*Math.PI*2,b=a+Math.PI*2/32;return{angle:(a+b)/2,mesh:build(()=>{for(let j=0;j<8;j++){const u=a+(b-a)*j/8,v=a+(b-a)*(j+1)/8;if((u>-1.83&&u<-1.29)||u>4.45||(u>3.78&&u<4.04)||(u>4.10&&u<4.42))continue;arcWall(13.42,u,v,0,3.6,.16,color.wall);arcWall(13.32,u,v,3.48,.026,.024,C.lilac)}})}});
+const wallSections=buildFloorplanWallSections();
 const architecturalMesh=buildRevisedArchitecture();
-const lightMesh=build(()=>{for(let i=0;i<110;i++){const a=-1.57+i/110*6.283,b=a+.025;arcWall(8.72,a,b,.022,.006,.035,C.lilac)}for(let i=0;i<22;i++){const a=-1.5+i/22*6.283;localFrame(Math.cos(a)*8.72,Math.sin(a)*8.72,-a-Math.PI/2,()=>{tri([-.12,.029,-.10],[.16,.029,0],[-.12,.029,.10],[0,1,0],C.lilac)})}});
+const lightMesh=build(()=>{});
 const corridorLighting=buildCorridorLighting();
 const centralBaseMesh=build(()=>{cyl(0,.065,0,6.25,.13,C.white,96);cyl(0,.135,0,6.24,.025,C.purple,96);cyl(0,.17,0,6.18,.05,[.94,.94,.96],96);cyl(.65,.23,-.55,1.14,.12,[.90,.89,.94],64)});
 const centralMesh=build(()=>{arcWall(5.95,.73,3.82,.20,3.0,.16,[.90,.90,.93]);arcWall(5.84,.73,3.82,3.12,.035,.018,C.lilac);cyl(.65,.23,-.55,1.14,.12,[.90,.89,.94],64)});
@@ -49,7 +49,7 @@ const furnitureMesh=build(()=>{
 const roomGlass=build(()=>atFrame(frames.tidy,()=>{for(const x of [-2.25,2.25])box(x,1.25,0,.012,2.5,3.4,[.50,.76,.84]);for(const z of [-1.70,1.70])box(0,1.25,z,4.5,2.5,.012,[.50,.76,.84]);box(0,2.5,0,4.5,.012,3.4,[.50,.76,.84])}));roomGlass.opacity=.10;
 const annexMesh=buildRevisedAnnex();
 const demoHeaders=build(()=>{for(const z of D.zones){if(['welcome','company','support'].includes(z.group))continue;const f=frames[z.id];if(z.id==='warehouse'){addLabel('惠宜选前置仓',f,0,3.45,-3.1,4.8,.48,{light:true});continue}addLabel(z.name.replace('AI 基建 · 六套系统','六套系统 · 全流程闭环'),f,0,z.id==='algorithm'?3.52:2.90,-.65,z.id==='products'?5.1:3.6,.40,{light:true})}
- for(const sign of D.signs){const a=sign.angle,f={x:Math.cos(a)*13.23,z:Math.sin(a)*13.23,rot:-Math.PI/2-a};addLabel(sign.text,f,0,sign.major?3.32:2.86,.015,sign.text.length>14?6.2:4.5,sign.major?.50:.30,{light:true,sub:sign.major?({企业概况:'COMPANY', 'AI 基建':'DATA & SYSTEMS',硬件展示:'HARDWARE',具身技术:'EMBODIED INTELLIGENCE'}[sign.text]):''})}
+ for(const sign of D.floorplan.signs)addLabel(sign.text,sign.f,0,sign.y,-.65,sign.w,.32,{light:true});
  addLabel('ZERITH · 零次方',{x:0,z:-11.14,rot:0},0,3.16,0,4.5,.28,{light:true});
 
  // Freestanding directional totems and a continuous purple floor route.
@@ -70,8 +70,10 @@ function paintSystem(c,w,h,index,time){const status=D.platformStatus(time);c.fil
 const reasoningTexture=textSurface(1024,550,()=>{});
 function paintReasoning(t){const c=reasoningTexture.ctx,w=1024,h=550;c.fillStyle='#101a29';c.fillRect(0,0,w,h);c.fillStyle='#d1bbf5';c.font='bold 40px Microsoft YaHei';c.fillText('万物可抓 / 推理过程',38,65);const p=D.demoPose('universal',t);c.fillStyle='#748ba3';c.fillRect(38,105,430,310);c.strokeStyle='#94e2c1';c.lineWidth=4;c.strokeRect(105,190,115,100);c.strokeRect(290,190,115,100);c.fillStyle='#9ad5b6';c.fillRect(133,215,58,53);c.fillStyle='#e1e3eb';c.font='23px Microsoft YaHei';c.fillText('来源框',112,330);c.fillText('目标框',298,330);c.fillStyle='#bdabdc';c.font='28px Microsoft YaHei';const steps=['目标检测 / 左侧框','姿态估计 / 夹爪对齐','抓取确认','无碰撞轨迹规划','右侧框放置','完成后图像校验'];steps.forEach((n,i)=>{c.fillStyle=i===Math.min(5,Math.floor(t/2))?'#e8dcff':'#7f8fa6';c.fillText((i+1)+'  '+n,510,145+i*55)});c.fillStyle='#8aa1ac';c.font='23px Microsoft YaHei';c.fillText('当前：'+p.action,38,480)}
 const productInfoTexture=titleTexture('ZERITH MatrixPick',{sub:'多工位拣选 / 系统协同',bg:'#202435',light:true,width:640,height:500});
+const historyTexture=textSurface(1200,760,(c,w,h)=>{c.fillStyle='#f1edf5';c.fillRect(0,0,w,h);c.fillStyle='#665079';c.font='bold 64px Microsoft YaHei';c.fillText('企业发展历程',65,110);['技术研发与积累','本体及模型迭代','真实场景验证','规模化应用与生态合作'].forEach((t,i)=>{const y=235+i*125;c.fillStyle='#c5b4dc';c.beginPath();c.arc(100,y-10,15,0,Math.PI*2);c.fill();c.fillRect(97,y+10,6,72);c.font='37px Microsoft YaHei';c.fillStyle='#77618b';c.fillText(t,150,y)})});
 const displayFixtures=build(()=>{
- addScreen(frames.company,0,1.72,-.65,5.9,2.0,companyTexture);
+ addScreen(frames.history,0,1.72,-.65,3.65,2.20,historyTexture,'company-history');
+ addScreen(frames.company,0,1.72,-.65,3.65,2.20,companyTexture);
  for(let i=0;i<6;i++){const x=(i%3-1)*1.93,y=i<3?2.34:1.18;addScreen(frames.ai,x,y,-.80,1.78,1.0,aiTextures[i],D.systems[i].id)}
 
  addScreen(frames.products,2.13,1.35,-.35,.81,.73,productInfoTexture);
@@ -132,6 +134,7 @@ function drawOpaqueScene(state){
  const g=state.guide;h1(model(g.pos[0],0,g.pos[1],1,1,1,g.yaw),[.23,1.02,.35],[-.23,1.02,.35]);
  if(!shadowPass){draw(lightMesh,I(),.95);draw(corridorLighting,I(),.95);}
 }
-function drawSceneSurfaces(state){for(const p of screenPanels)texMesh(p.mesh,p.texture,p.mat);for(const p of labels3D){if(p.central)continue;labelSurface(p.texture,p.mat);}if(centralWallVisible(state))texMesh(centralFilm,filmTexture,I());drawCentralSurfaces(state);translucent(roomGlass)}
-window.LocalScene={frames,screenPanels,labels3D,drawOpaqueScene,drawSceneSurfaces,updateScreens,geometry:{brightWalls:true,curvedWorktops:true,warehouseAccess:'northwest-corridor',get central(){return centralFeature},roomClosed:true,transparentRoom:true,loungeTables:0,loungeChairs:0,warehouseShelfRows:3,preservedFacilities:D.preservedFacilities,sortingAssignment:{left:'bolt',right:'nut'}},gl};
+function drawSceneSurfaces(state){for(const p of screenPanels)texMesh(p.mesh,p.texture,p.mat);for(const p of labels3D){if(p.central||(!state.overview&&p.owner&&p.owner!==state.current))continue;labelSurface(p.texture,p.mat);}if(centralWallVisible(state))texMesh(centralFilm,filmTexture,I());drawCentralSurfaces(state);translucent(roomGlass)}
+window.LocalScene={frames,screenPanels,labels3D,drawOpaqueScene,drawSceneSurfaces,updateScreens,geometry:{brightWalls:true,curvedWorktops:true,warehouseAccess:'architectural-west-corridor',buildingAligned:true,get central(){return centralFeature},roomClosed:true,transparentRoom:true,loungeTables:0,loungeChairs:0,warehouseShelfRows:3,preservedFacilities:D.preservedFacilities,sortingAssignment:{left:'bolt',right:'nut'}},gl};
+
 

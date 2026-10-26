@@ -38,6 +38,6 @@ function buildRevisedAnnex(){const l=SpatialRevision.layout;return build(()=>{
  addLabel('← 惠宜选前置仓 · 会议室 ↓',{x:-22.4,z:-9.25,rot:0},0,2.15,0,6.0,.40,{light:true});
 })}
 function buildCorridorLighting(){return build(()=>{const c=SpatialRevision.layout.corridor;for(const z of [-9.65,-8.75])roundedBox(-16.5,.026,z,15.5,.012,.018,.008,C.lilac);for(const x of [-22.88,-21.92])roundedBox(x,.026,3.2,.018,.012,25,.008,C.lilac);for(const z of [-5,0,5,10,15])localFrame(-22.4,z,-Math.PI/2,()=>tri([-.15,.031,-.1],[.18,.031,0],[-.15,.031,.1],[0,1,0],C.purple))})}
-function wallScreenPoint(f,x,y,z,radius=13.23){const angle=Math.atan2(f.z,f.x)+x/radius;return[Math.cos(angle)*radius,y,Math.sin(angle)*radius]}
+function wallScreenPoint(f,x,y,z,radius=13.23){const fp=globalThis.ShowroomData?.floorplan,custom=fp?.screenPoint(f,x,y,z);if(custom)return custom;const angle=Math.atan2(f.z,f.x)+x/radius;return[Math.cos(angle)*radius,y,Math.sin(angle)*radius]}
 function curvedScreenSurface(f,x,y,z,w,h){const vertices=[],count=48;for(let i=0;i<count;i++){const pt=(n,up)=>[...wallScreenPoint(f,x-w/2+n/count*w,y+(up?.5:-.5)*h,z),n/count,up?0:1];for(const p of [pt(i,0),pt(i+1,0),pt(i+1,1),pt(i,0),pt(i+1,1),pt(i,1)])vertices.push(...p)}const buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(vertices),gl.STATIC_DRAW);return{buffer,count:vertices.length/5}}
 if(typeof module!=='undefined')module.exports={roundedOutline,roomWallSegments,wallScreenPoint};

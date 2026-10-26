@@ -1,7 +1,7 @@
 {
-  "version": "new-map-three-devices-r3",
+  "version": "architectural-plan-oct26-r5",
   "release": "2026-10-26",
-  "routeStops": 13,
+  "routeStops": 15,
   "demos": 6,
   "curvedScreens": true,
   "dualRandomDropRigs": true

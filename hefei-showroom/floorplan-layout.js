@@ -1,0 +1,34 @@
+(function(root){'use strict';const d=root.ShowroomData||(typeof require!=='undefined'?require('./scene-data.js'):null);
+const scale=.042,point=(x,y)=>[(x-850)*scale,(y-310)*scale];
+function frame(id,x,y,rot){const p=point(x,y);return{id,x:p[0],z:p[1],rot,angle:Math.atan2(p[1],p[0])}}
+const arcFrame=(id,x,y)=>{const p=point(x,y);return frame(id,x,y,-Math.PI/2-Math.atan2(p[1],p[0]))};
+const frames={entrance:frame('entrance',895,87,Math.PI),central:frame('central',850,310,0),selfie:frame('selfie',1037,114,-Math.PI/4),company:arcFrame('company',1120,222),history:arcFrame('history',1120,325),products:arcFrame('products',1092,443),components:arcFrame('components',1016,522),ai:frame('ai',916,597,Math.PI),algorithm:frame('algorithm',798,597,Math.PI),multi:frame('multi',742,542,Math.PI),hanging:frame('hanging',695,465,Math.PI/2),coffee:frame('coffee',583,378,Math.PI/2),tidy:frame('tidy',590,232,Math.PI/2),shop:frame('shop',662,77,0)};
+const room=(id,name,x,y,width,depth,doorSide,doorZ=0)=>{const p=point(x,y),w=width*scale,dep=depth*scale;return{id,name,x:p[0],z:p[1],width:w,depth:dep,doorSide,doorZ,door:[p[0]+(doorSide==='west'?-1:1)*w/2,p[1]+doorZ],approach:[p[0]+(doorSide==='west'?-1:1)*(w/2+.85),p[1]+doorZ]}};
+const warehouse=room('warehouse','惠宜选前置仓',260,292,210,294,'east',-4.3);frames.warehouse=frame('warehouse',260,292,0);
+const meetings=[room('meeting-large','大会议室',260,550,210,220,'east'),room('meeting-small-a','小会议室 01',491,385,120,126,'west'),room('meeting-small-b','小会议室 02',491,520,120,138,'west')];for(const r of meetings)frames[r.id]={id:r.id,x:r.x,z:r.z,rot:0};
+const staff=room('staff','展厅工作室',260,90,210,110,'east'),salon=room('salon','沙龙会客区',492,220,122,170,'west',-1.8),stairs=frame('stairs',610,560,0),lift=frame('lift',1106,615,0),restrooms=frame('restrooms',700,710,0);
+const corridor={entry:point(645,115),innerGate:point(645,115),junction:point(395,115),width:2.9,south:point(395,650)[1]};Object.assign(d.layout,{warehouse,meetings,staff,salon,stairs,lift,restrooms,corridor});
+const newZones=[{id:'selfie',group:'welcome',name:'宣传打卡点',narration:'入口右侧设置品牌宣传打卡点。弧形品牌背景与航空轨道元素形成合影场景，欢迎在参观前后留下与零次方的合影。',steps:['品牌合影','航空主题打卡']},{id:'history',group:'company',name:'企业发展历程',narration:'企业发展历程与企业概况沿东侧墙面连续展示。从研发、本体与模型迭代，到真实场景落地，了解零次方的技术发展路径。',steps:['技术研发','本体与模型迭代','真实场景落地']}];
+d.zones.push(...newZones);d.route=['entrance','selfie','central','company','history','products','components','algorithm','ai','multi','hanging','coffee','tidy','shop','warehouse'];d.zones=d.route.map(id=>d.zones.find(z=>z.id===id)).concat(d.zones.filter(z=>z.group==='support'));
+for(const z of d.zones){const f=frames[z.id];if(f)z.p=[f.x,f.z];}
+d.demos=d.zones.filter(z=>['api','agent','scenario'].includes(z.group));
+d.zones.find(z=>z.id==='entrance').narration='欢迎来到零次方合肥展厅。入口右侧是宣传打卡点；沿东侧参观企业概况、发展历程与硬件展示，再到南侧 AI 基建、西侧具身技术及北侧机器人小店。前置仓和会议室通过西北共享走廊抵达。';
+const anchors={entrance:point(900,102),selfie:point(1022,160),central:point(850,100),company:point(1045,240),history:point(1053,333),products:point(1025,437),components:point(946,500),ai:point(913,540),algorithm:point(813,540),multi:point(746,510),hanging:point(739,444),coffee:point(650,365),tidy:point(650,230),shop:point(687,130),gate:corridor.innerGate.slice(),junction:corridor.junction.slice(),warehouse:warehouse.approach.slice()};for(const r of meetings)anchors[r.id]=r.approach.slice();
+const graph={},edgeList=[];const add=(a,b)=>{const dist=Math.hypot(anchors[a][0]-anchors[b][0],anchors[a][1]-anchors[b][1]);(graph[a]??=[]).push([b,dist]);(graph[b]??=[]).push([a,dist]);edgeList.push([a,b])};
+const ring=['entrance','selfie','company','history','products','components','ai','algorithm','multi','hanging','coffee','tidy','shop','gate','central'];for(let i=0;i<ring.length;i++)add(ring[i],ring[(i+1)%ring.length]);add('gate','junction');
+const branches=['warehouse',...meetings.map(r=>r.id)].sort((a,b)=>anchors[a][1]-anchors[b][1]);let previous='junction';for(const id of branches){const corridorId='corridor-'+id;anchors[corridorId]=[corridor.junction[0],anchors[id][1]];add(previous,corridorId);add(corridorId,id);previous=corridorId;}
+const nearest=p=>Object.keys(anchors).reduce((best,id)=>Math.hypot(...anchors[id].map((v,i)=>v-p[i]))<Math.hypot(...anchors[best].map((v,i)=>v-p[i]))?id:best,'entrance');
+function routeGuide(start,end){const from=nearest(start),to=nearest(end),dist={},parents={},pending=new Set(Object.keys(anchors));for(const id of pending)dist[id]=Infinity;dist[from]=0;while(pending.size){let at=null;for(const id of pending)if(at===null||dist[id]<dist[at])at=id;if(at===to||!Number.isFinite(dist[at]))break;pending.delete(at);for(const [next,len] of graph[at]||[])if(dist[at]+len<dist[next]){dist[next]=dist[at]+len;parents[next]=at;}}
+ const ids=[to];while(ids[0]!==from){if(!parents[ids[0]])return[start.slice(),end.slice()];ids.unshift(parents[ids[0]])}const result=[start.slice()];for(const id of ids)if(Math.hypot(...anchors[id].map((v,i)=>v-result.at(-1)[i]))>.001)result.push(anchors[id].slice());if(Math.hypot(...end.map((v,i)=>v-result.at(-1)[i]))>.001)result.push(end.slice());return result;
+}
+function segmentDistance(p,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dz)/(dx*dx+dz*dz||1)));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dz)}
+function isPublicWalkable(p){return edgeList.some(([a,b])=>segmentDistance(p,anchors[a],anchors[b])<1.15)}
+const wallProfiles={company:{kind:'arc',radius:12.18},history:{kind:'arc',radius:12.18},products:{kind:'arc',radius:12.18},ai:{kind:'south',radius:45,z:12.70},algorithm:{kind:'south',radius:45,z:12.70}};
+function screenPoint(f,x,y,z){const profile=wallProfiles[f.id];if(!profile)return null;if(profile.kind==='arc'){const a=Math.atan2(f.z,f.x)+x/profile.radius;return[Math.cos(a)*profile.radius,y,Math.sin(a)*profile.radius]}const worldX=f.x-x;return[worldX,y,profile.z+profile.radius-Math.sqrt(profile.radius**2-worldX**2)]}
+const signs=[{text:'企业概况 · 发展历程',f:frames.company,y:3.35,w:5.6},{text:'硬件展示 · 系统协同',f:frames.products,y:3.35,w:5.4},{text:'AI 基建 · 数据驾驶舱',f:frames.ai,y:3.48,w:5.5},{text:'抓取放置 API',f:frames.hanging,y:3.42,w:4.1},{text:'原子能力 + 物理 agent',f:frames.coffee,y:3.38,w:5.0},{text:'场景作业',f:frames.shop,y:3.32,w:4.5}];
+const outerPixels=[[155,35],[1000,35],[1145,180],[1145,740],[745,740],[745,780],[635,780],[635,740],[350,740],[350,665],[155,665]];
+d.floorplan={exhibitWall:{radius:12.33,start:-.53,end:1.07},version:'architectural-plan-oct26-r5',scale,point,frames,anchors,edgeList,outer:outerPixels.map(p=>point(...p)),signs,wallProfiles,screenPoint,isPublicWalkable,routeGuide};d.guideWaypoint=id=>(anchors[id]||[frames[id]?.x||0,frames[id]?.z||0]).slice();d.routeGuide=routeGuide;
+root.SpatialRevision.layout=d.layout;root.SpatialRevision.guideRoute=routeGuide;root.SpatialRevision.isPublicWalkable=isPublicWalkable;if(typeof module!=='undefined')module.exports=d.floorplan;
+})(globalThis);
+
+
