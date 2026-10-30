@@ -1,8 +1,10 @@
 {
-  "version": "architectural-plan-oct26-r5",
-  "release": "2026-10-26",
-  "routeStops": 15,
-  "demos": 6,
+  "version": "architectural-plan-oct29-r6",
+  "release": "2026-10-29",
+  "routeStops": 16,
+  "demos": 7,
+  "metricCalibrated": true,
+  "gridSquareMetres": 1,
   "curvedScreens": true,
   "dualRandomDropRigs": true
 }

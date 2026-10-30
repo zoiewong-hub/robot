@@ -3,9 +3,9 @@ const D=ShowroomData,labels3D=[],screenPanels=[],glassPanels=[],frames={},assetT
 const color={wall:[.94,.935,.95],stone:[.94,.935,.93],plinth:[.91,.91,.94],purple:[.57,.37,.93],mint:[.36,.62,.55],blue:[.36,.49,.72],sand:[.73,.57,.39]};
 const blend=(a,b,t)=>a.map((x,i)=>x+(b[i]-x)*t);
 const mix=blend;
-function atFrame(f,fn){localFrame(f.x,f.z,f.rot,fn)}
-function matFrame(f,x=0,y=0,z=0,scale=1){return mul(model(f.x,0,f.z,1,1,1,f.rot),model(x,y,z,scale,scale,scale))}
-function pointFrame(f,x,y,z){return[f.x+x*Math.cos(f.rot)+z*Math.sin(f.rot),y,f.z-x*Math.sin(f.rot)+z*Math.cos(f.rot)]}
+function atFrame(f,fn){const start=verts.length;localFrame(f.x,f.z,f.rot,fn);if(f.scaleXZ){const s=f.scaleXZ;for(let i=start;i<verts.length;i+=9){verts[i]=f.x+(verts[i]-f.x)*s;verts[i+2]=f.z+(verts[i+2]-f.z)*s;const n=norm([verts[i+3]/s,verts[i+4],verts[i+5]/s]);verts[i+3]=n[0];verts[i+4]=n[1];verts[i+5]=n[2]}}}
+function matFrame(f,x=0,y=0,z=0,scale=1){return mul(model(f.x,0,f.z,1,1,1,f.rot),model(x*(f.scaleXZ||1),y,z*(f.scaleXZ||1),scale*(f.scaleXZ||1),scale,scale*(f.scaleXZ||1)))}
+function pointFrame(f,x,y,z){const s=f.scaleXZ||1;return[f.x+(x*Math.cos(f.rot)+z*Math.sin(f.rot))*s,y,f.z+(-x*Math.sin(f.rot)+z*Math.cos(f.rot))*s]}
 function stationFrame(id,radius){if(D.floorplan?.frames[id])return{...D.floorplan.frames[id]};const z=D.zones.find(z=>z.id===id),a=Math.atan2(z.p[1],z.p[0]);return{x:radius?Math.cos(a)*radius:z.p[0],z:radius?Math.sin(a)*radius:z.p[1],rot:-Math.PI/2-a,angle:a}}
 for(const z of D.zones)frames[z.id]=stationFrame(z.id);
 frames.shop=stationFrame('shop');
@@ -17,7 +17,7 @@ function slab(x,z,w,d,col=C.floor){roundedBox(x,-.10,z,w,.20,d,.10,col)}
 function tray(x,y,z,w=.55,d=.48,col=color.blue){box(x,y,z,w,.035,d,col);for(const dx of [-w/2,w/2])box(x+dx,y+.08,z,.022,.16,d,col);for(const dz of [-d/2,d/2])box(x,y+.08,z+dz,w,.16,.022,col)}
 function worktable(w=2.5,d=1.3,h=.80){curvedWorktable(w,d,h)}
 function titleTexture(text,{sub='',light=false,bg=null,width=1024,height=220}={}){return textSurface(width,height,(c,w,h)=>{if(bg){c.fillStyle=bg;c.fillRect(0,0,w,h)}c.textAlign='center';c.textBaseline='middle';c.font='600 '+Math.min(78,Math.floor(w/(text.length*.75)))+'px Microsoft YaHei';if(light){c.shadowColor='#b593ff';c.shadowBlur=13}c.fillStyle=light?'#76558f':'#3b3452';c.fillText(text,w/2,h*(sub?.38:.5));c.shadowBlur=0;if(sub){c.font='24px Microsoft YaHei';c.fillStyle=light?'#9987a8':'#797185';c.fillText(sub,w/2,h*.78)}})}
-function addLabel(text,f,x,y,z,w,h,options={}){const tex=titleTexture(text,options);const item={text,owner:f.id||options.owner||null,texture:tex,mat:mul(model(f.x,0,f.z,1,1,1,f.rot),model(x,y,z,w,h,1))};labels3D.push(item);return item}
+function addLabel(text,f,x,y,z,w,h,options={}){const tex=titleTexture(text,options);const item={text,owner:f.id||options.owner||null,texture:tex,mat:mul(model(f.x,0,f.z,1,1,1,f.rot),model(x*(f.scaleXZ||1),y,z*(f.scaleXZ||1),w*(f.scaleXZ||1),h,1))};labels3D.push(item);return item}
 function addScreen(f,x,y,z,w,h,texture,system){const profile=D.floorplan.wallProfiles[f.id],item={texture,mat:I(),mesh:curvedScreenSurface(f,x,y,z,w,h),system,curved:true,wallRadius:profile?.radius||13.23};screenPanels.push(item);const N=40;for(const side of [-1,1])for(let i=0;i<N;i++){const a=wallScreenPoint(f,x-w/2+i/N*w,y+side*(h/2+.035),z),b=wallScreenPoint(f,x-w/2+(i+1)/N*w,y+side*(h/2+.035),z);segment(a,b,.036,[.73,.70,.79])}for(const side of [-1,1])segment(wallScreenPoint(f,x+side*(w/2+.035),y-h/2,z),wallScreenPoint(f,x+side*(w/2+.035),y+h/2,z),.036,[.73,.70,.79]);return item}
 function loadAsset(name,url){const tex=textSurface(512,256,c=>{c.fillStyle='#171c29';c.fillRect(0,0,512,256)}),im=new Image();im.onload=()=>{gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,tex.texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,im);window.sceneDirty=true};im.src=url;assetTextures[name]=tex;return tex}
 const filmTexture=loadAsset('film','assets/brand-film.webp');
@@ -26,7 +26,7 @@ const wallSections=buildFloorplanWallSections();
 const architecturalMesh=buildRevisedArchitecture();
 const lightMesh=build(()=>{});
 const corridorLighting=buildCorridorLighting();
-const centralBaseMesh=build(()=>{cyl(0,.065,0,6.25,.13,C.white,96);cyl(0,.135,0,6.24,.025,C.purple,96);cyl(0,.17,0,6.18,.05,[.94,.94,.96],96);cyl(.65,.23,-.55,1.14,.12,[.90,.89,.94],64)});
+const centralBaseMesh=build(()=>{cyl(0,.065,0,6.03,.13,C.white,96);cyl(0,.135,0,6.02,.025,C.purple,96);cyl(0,.17,0,5.96,.05,[.94,.94,.96],96);cyl(.65,.23,-.55,1.14,.12,[.90,.89,.94],64)});
 const centralMesh=build(()=>{arcWall(5.95,.73,3.82,.20,3.0,.16,[.90,.90,.93]);arcWall(5.84,.73,3.82,3.12,.035,.018,C.lilac);cyl(.65,.23,-.55,1.14,.12,[.90,.89,.94],64)});
 const centralFilm={buffer:gl.createBuffer(),count:96*6};{const v=[];for(let i=0;i<96;i++){const pt=(n,up)=>{const a=.85+n/96*2.78;return[Math.cos(a)*5.835,up?2.95:.55,Math.sin(a)*5.835,n/96,up?0:1]};for(const p of [pt(i,0),pt(i+1,0),pt(i+1,1),pt(i,0),pt(i+1,1),pt(i,1)])v.push(...p)}gl.bindBuffer(gl.ARRAY_BUFFER,centralFilm.buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(v),gl.STATIC_DRAW)}
 const furnitureMesh=build(()=>{
@@ -48,8 +48,8 @@ const furnitureMesh=build(()=>{
 });
 const roomGlass=build(()=>atFrame(frames.tidy,()=>{for(const x of [-2.25,2.25])box(x,1.25,0,.012,2.5,3.4,[.50,.76,.84]);for(const z of [-1.70,1.70])box(0,1.25,z,4.5,2.5,.012,[.50,.76,.84]);box(0,2.5,0,4.5,.012,3.4,[.50,.76,.84])}));roomGlass.opacity=.10;
 const annexMesh=buildRevisedAnnex();
-const demoHeaders=build(()=>{for(const z of D.zones){if(['welcome','company','support'].includes(z.group))continue;const f=frames[z.id];if(z.id==='warehouse'){addLabel('惠宜选前置仓',f,0,3.45,-3.1,4.8,.48,{light:true});continue}addLabel(z.name.replace('AI 基建 · 六套系统','六套系统 · 全流程闭环'),f,0,z.id==='algorithm'?3.52:2.90,-.65,z.id==='products'?5.1:3.6,.40,{light:true})}
- for(const sign of D.floorplan.signs)addLabel(sign.text,sign.f,0,sign.y,-.65,sign.w,.32,{light:true});
+const demoHeaders=build(()=>{for(const z of D.zones){if(['welcome','company','support'].includes(z.group)||z.id==='multi')continue;const f=frames[z.id];if(z.id==='warehouse'){addLabel('惠宜选前置仓',f,0,3.45,-3.1,4.8,.48,{light:true});continue}addLabel(z.name.replace('AI 基建 · 六套系统','六套系统 · 全流程闭环'),f,0,z.id==='algorithm'?3.22:2.66,-.65,z.id==='products'?5.1:3.2,.26,{light:true})}
+ for(const sign of D.floorplan.signs)addLabel(sign.text,sign.f,0,sign.y,-.65,sign.w,.22,{light:true});
  addLabel('ZERITH · 零次方',{x:0,z:-11.14,rot:0},0,3.16,0,4.5,.28,{light:true});
 
  // Freestanding directional totems and a continuous purple floor route.
@@ -72,12 +72,12 @@ function paintReasoning(t){const c=reasoningTexture.ctx,w=1024,h=550;c.fillStyle
 const productInfoTexture=titleTexture('ZERITH MatrixPick',{sub:'多工位拣选 / 系统协同',bg:'#202435',light:true,width:640,height:500});
 const historyTexture=textSurface(1200,760,(c,w,h)=>{c.fillStyle='#f1edf5';c.fillRect(0,0,w,h);c.fillStyle='#665079';c.font='bold 64px Microsoft YaHei';c.fillText('企业发展历程',65,110);['技术研发与积累','本体及模型迭代','真实场景验证','规模化应用与生态合作'].forEach((t,i)=>{const y=235+i*125;c.fillStyle='#c5b4dc';c.beginPath();c.arc(100,y-10,15,0,Math.PI*2);c.fill();c.fillRect(97,y+10,6,72);c.font='37px Microsoft YaHei';c.fillStyle='#77618b';c.fillText(t,150,y)})});
 const displayFixtures=build(()=>{
- addScreen(frames.history,0,1.72,-.65,3.65,2.20,historyTexture,'company-history');
- addScreen(frames.company,0,1.72,-.65,3.65,2.20,companyTexture);
- for(let i=0;i<6;i++){const x=(i%3-1)*1.93,y=i<3?2.34:1.18;addScreen(frames.ai,x,y,-.80,1.78,1.0,aiTextures[i],D.systems[i].id)}
+ addScreen(frames.history,0,1.72,-.65,3.0,1.75,historyTexture,'company-history');
+ addScreen(frames.company,0,1.72,-.65,3.0,1.75,companyTexture);
+ for(let i=0;i<6;i++){const x=(i%3-1)*1.61,y=i<3?2.18:1.20;addScreen(frames.ai,x,y,-.80,1.48,.84,aiTextures[i],D.systems[i].id)}
 
  addScreen(frames.products,2.13,1.35,-.35,.81,.73,productInfoTexture);
- for(const [i,x] of [-1.75,-.93,-.15,.75,1.55,2.18].entries())addLabel(['初代人形','二代人形','H1 轮臂','G0 + 手套','末端夹爪','MatrixPick'][i],frames.products,x,2.16,-.25,i<3?.78:1,.16,{light:true});
+ for(const [i,x] of [-1.75,-.93,-.15,.75,1.55,2.18].entries())addLabel(['Z1 人形','R1 人形','H1 轮臂','T0 夹爪','H1 系列','产品系统'][i],frames.products,x,2.16,-.25,i<3?.78:1,.16,{light:true});
  for(const [text,a] of [['企业荣誉 · 知识产权',1.57],['生态合作',3.34]]){const label=addLabel(text,{x:Math.cos(a)*6.02,z:Math.sin(a)*6.02,rot:-Math.PI/2-a},0,1.6,0,3.8,.5,{light:true});label.central=true;}
 });
 const shoppingBagMesh=build(()=>{box(0,0,0,.27,.018,.22,C.wood);for(const x of [-.135,.135])box(x,.125,0,.014,.25,.22,C.wood);for(const z of [-.11,.11])box(0,.125,z,.27,.25,.014,C.wood);for(const x of [-.08,.08])segment([x,.25,-.03],[x,.34,.03],.007,C.dark)});
@@ -115,6 +115,8 @@ let lastScreenTime=-1;
 function updateScreens(time){if(Math.abs(time-lastScreenTime)<.1)return;lastScreenTime=time;for(let i=0;i<6;i++){const tex=aiTextures[i];paintSystem(tex.ctx,800,440,i,time);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,tex.texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,tex.c)}paintReasoning(time);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,reasoningTexture.texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,reasoningTexture.c);gl.activeTexture(gl.TEXTURE0)}
 function drawDemo(id,time){const f=frames[id],t=time,p=D.demoPose(id==='ai'?'data-platform':id,t),base=matFrame(f,p.robot[0],p.baseHeight||0,p.robot[1]);
  if(id==='multi'){drawMultiInteraction(time);return}
+ if(id==='tidy'){drawRoomOperation(time);return}
+ if(id==='industrial'){drawIndustrialOperation(time);return}
  if(id==='hanging'){drawHangingInteraction(time);return}
  if(id==='warehouse'){const next=D.demoPose(id,Math.min(20,t+.04)).robot,dx=next[0]-p.robot[0],dz=next[1]-p.robot[1],heading=p.heading??(Math.hypot(dx,dz)>.001?Math.atan2(dx,dz):(t<7?-Math.PI/2:Math.PI/2)),m=mul(base,model(0,0,0,1,1,1,heading));h1(m,p.right,p.left);const first=t<6?p.right:p.left;if(p.carrying)draw(objectMesh,mul(m,model(first[0],first[1]-.15,first[2],1,1,1)));else if(t<4.5)draw(objectMesh,matFrame(f,.30,1.0,.50));if(p.secondItem)draw(objectMesh,mul(m,model(p.right[0],p.right[1]-.15,p.right[2],.8,.8,.8)));else if(t<12.5)draw(objectMesh,matFrame(f,-.30,1.0,-.50,.8));if(p.deposited){draw(objectMesh,matFrame(f,.37,.93,-4.60));draw(objectMesh,matFrame(f,.25,.93,-4.35,.8));}return}
  h1(base,p.right,p.left);
