@@ -1,23 +1,4 @@
 function softLegacyBox(x,y,z,w,h,d,r,col){if(w>.9&&h<1)curvedBlock(x,y,z,w,h,d,Math.min(.28,d*.25),Math.min(.15,w*.04),col);else roundedBox(x,y,z,w,h,d,Math.min(Math.max(r,.04),w*.35,d*.35),col)}
-const legacyCoffee=build(()=>{
- softLegacyBox(0,.385,0,3.25,.73,.92,.045,[.86,.85,.83]);softLegacyBox(0,.77,0,3.35,.06,1.02,.025,C.white);
- softLegacyBox(0,.065,0,3.08,.09,.80,.025,[.28,.29,.32]);
- for(const x of [-.84,.12,.98])box(x,.40,.466,.008,.61,.008,[.68,.66,.70]);
- localFrame(.98,-.05,-Math.PI/2,()=>{
-  softLegacyBox(0,1.125,-.06,.70,.65,.57,.045,[.72,.73,.75]);
-  softLegacyBox(0,1.12,.245,.61,.44,.025,.015,C.dark);softLegacyBox(0,1.355,.27,.37,.10,.015,.012,C.screen);
-  box(0,.815,.32,.62,.025,.40,C.metal);for(let i=0;i<13;i++)box(-.27+i*.045,.833,.32,.012,.009,.35,C.dark);
-  for(const x of [-.10,.10]){cyl(x,1.20,.32,.020,.12,C.metal);box(x,1.265,.30,.03,.02,.11,C.metal)}
-  for(const x of [-.26,.26])sphere(x,1.35,.265,.018,.018,.008,C.metal);
-  for(let i=0;i<9;i++)box(.355,1.0+i*.035,-.08,.006,.009,.30,[.32,.34,.36]);
- });
- // Cup dispenser and lid stack stay clear of the robot's torso and elbow corridor.
- cyl(-1.15,.90,-.10,.12,.20,C.dark);for(let i=0;i<3;i++)cyl(-1.15,1.01+i*.035,-.10,.11,.035,C.white);
- for(let i=0;i<5;i++)cyl(-.65,.815+i*.014,.19,.125,.014,C.cream);
- softLegacyBox(-.35,.812,.32,.55,.02,.28,.025,C.metal);
-});
-
-
 const legacyShop=build(()=>{const start=verts.length;
 softLegacyBox(0,.22,-.5,4.0,.42,1.92,.30,[.82,.75,.64]);for(const x of [-1.70,1.70])softLegacyBox(x,1.43,-.85,.50,2.30,1.16,.22,[.83,.78,.71]);box(0,1.43,-1.40,3.1,2.15,.10,[.88,.85,.80]);softLegacyBox(0,2.38,-.85,3.9,.35,1.16,.15,[.83,.78,.71]);box(0,.51,-.24,2.95,.30,.12,C.cream);
 box(-.45,1.36,-1.23,1.82,1.64,.06,[.85,.82,.77]);box(0,2.55,-.30,3.25,.12,1.42,C.cream);

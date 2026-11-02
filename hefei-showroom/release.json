@@ -1,8 +1,8 @@
 {
-  "version": "exhibit-corrections-oct30-r7",
-  "release": "2026-10-30",
-  "routeStops": 16,
-  "demos": 7,
+  "version": "backdrop-room-nov02-r8",
+  "release": "2026-11-02",
+  "routeStops": 15,
+  "demos": 6,
   "metricCalibrated": true,
   "gridSquareMetres": 1,
   "curvedScreens": true,
@@ -10,6 +10,12 @@
   "humanCollector": true,
   "horizontalDynamicWorktops": 2,
   "ringConveyor": true,
-  "wallSlopeAssembly": true,
+  "wallFlatAssembly": true,
+  "preassembledModule": true,
+  "headlightWiring": true,
+  "persistentRoomTargets": true,
+  "coffeeBar": false,
+  "continuousDemoBackdrop": true,
+  "decisionScreens": 3,
   "compactDefaultGuide": true
 }

@@ -32,27 +32,29 @@ function getRoomState(){return{items:roomItems.map(x=>({...x,position:copy(x.pos
 function queueRoomTask(id,destination,time=0){if(!roomItems.some(x=>x.id===id)||!roomDestinations[destination])throw new Error('未知物品或位置');const started=Math.ceil(Math.max(0,time)/8),existing=roomTasks.findIndex((x,i)=>x.id===id&&i>=started);if(existing>=0)roomTasks[existing]={id,destination};else roomTasks.push({id,destination});return getRoomState()}
 function commitRoom(t){const p=roomPose(t);roomItems=p.items.map(x=>({...x,position:copy(x.position)}));roomTasks=[]}
 function roomPose(t){const completed=Math.min(roomTasks.length,Math.floor(Math.max(0,t)/8)),index=Math.min(roomTasks.length-1,completed),task=roomTasks[index],items=roomItems.map(x=>({...x,position:copy(x.position)}));for(let i=0;i<completed;i++){const it=items.find(x=>x.id===roomTasks[i].id);it.position=copy(roomSlot(roomTasks[i].id,roomTasks[i].destination));it.surface=roomTasks[i].destination}let robot=[1.10,1.05],right=[.24,1.02,.30],left=[-.24,1.02,.30],phase='房间待命 · 请在 iPad 指定整理位置';if(task&&completed<roomTasks.length){const u=clamp(t-index*8,0,8),it=items.find(x=>x.id===task.id),a=it.position,b=roomSlot(task.id,task.destination),sourceBase=[clamp(a[0],-1.2,1.2),a[2]-.48],destBase=[clamp(b[0],-1.2,1.2),b[2]-.48];robot=path([[0,[1.1,1.05]],[1,sourceBase],[3,sourceBase],[5,destBase],[7,destBase],[8,[1.1,1.05]]],u);const relative=p=>[p[0]-robot[0],p[1]+.12,p[2]-robot[1]],world=path([[0,a],[2,a],[3,[a[0],1.14,a[2]]],[5,[b[0],1.14,b[2]]],[6,b],[8,b]],u);right=u<1?[.24,1.02,.30]:relative(world);left=[-.26,1.05,.28];if(u>=2)it.position=world;phase=u<1?'任务分配 / 移动接近':u<2?'识别与夹取':u<3?'提起确认':u<5?'移动转运':u<6?'分类归位':'状态校验';phase=it.name+' → '+roomDestinations[task.destination].name+' · '+phase}else if(completed)phase='本轮整理完成 · '+completed+' 件物品已归位';return{id:'tidy',robot,right,left,items,completed,tasks:roomTasks.map(x=>({...x})),action:phase}}
+function roomTabletState(t){const p=roomPose(t),items=p.items.map(it=>({...it,position:copy(it.position),actualPosition:copy(it.position),status:'idle',destination:null}));for(let i=0;i<p.tasks.length;i++){const task=p.tasks[i],it=items.find(x=>x.id===task.id);it.position=copy(roomSlot(task.id,task.destination));it.destination=task.destination;it.status=i<p.completed?'complete':'pending';it.taskIndex=i;}return{...p,items,pending:p.tasks.length-p.completed}}
+d.roomTabletState=roomTabletState;
 scatterRoom(20261029);for(const [id,name] of [['book','shelf'],['cushion','sofa'],['remote','table']])queueRoomTask(id,name);
-const industrialLayout={type:'wall-slope',width:4.2,depth:1.95,wallStandOff:.12,slope:.32};
-const assemblySurface=z=>1.11-industrialLayout.slope*z;
+const industrialLayout={type:'wall-flat',width:4.2,depth:1.70,wallStandOff:.16,slope:0,deskTop:.80,moduleTop:.84,preassembledModule:true,materialZone:'audience-front',assemblyZone:'robot-rear',headlightWiring:true};
+const partBottomOffsets={interior:.065,cover:.0175,panel:.060,battery:.060,harness:.005};d.partBottomOffsets=partBottomOffsets;const assemblySurface=()=>.84;
 const industrialSteps=[
- {id:'interior',name:'车内零部件安装',source:[1.52,.80,1.08],target:[.55,assemblySurface(.45),.45]},
- {id:'cover',name:'零部件盖板安装',source:[.76,.80,1.08],target:[.55,assemblySurface(.45)+.10,.45]},
- {id:'panel',name:'车身钣金件安装',source:[0,.80,1.08],target:[1.30,assemblySurface(.25),.25]},
- {id:'battery',name:'车灯电池安装',source:[-.76,.80,1.08],target:[-.35,assemblySurface(.62),.62]},
- {id:'harness',name:'车灯线束插接',source:[-1.52,.80,1.08],target:[-1.38,assemblySurface(.40),.40]}
+ {id:'interior',name:'车内零部件安装',source:[1.52,.865,1.23],target:[.55,.905,.59]},
+ {id:'cover',name:'零部件盖板安装',source:[.76,.8175,1.23],target:[.55,1.0825,.59]},
+ {id:'panel',name:'车身钣金件安装',source:[0,.860,1.23],target:[1.30,.900,.59]},
+ {id:'battery',name:'车灯电池安装',source:[-.76,.860,1.23],target:[-.35,.900,.59]},
+ {id:'harness',name:'大灯线束连接',source:[-1.52,.805,1.23],target:[-1.04,.845,.59]}
 ];
 function industrialPose(t){
- t=clamp(t,0,60);const finished=t>=60,i=Math.min(4,Math.floor(t/12)),u=finished?12:t-i*12,step=industrialSteps[i],a=step.source,b=step.target,home=[0,1.45],sourceBase=[a[0],1.45],destBase=[b[0],1.28];
- const robot=finished?home:path([[0,home],[1.3,sourceBase],[3,sourceBase],[5,destBase],[9,destBase],[12,home]],u),yaw=Math.PI;
- const part=path([[0,a],[2,a],[3,[a[0],1.42,a[2]]],[5,[b[0],1.42,b[2]]],[8,b],[12,b]],u),grasped=!finished&&u>=2&&u<8;
- const local=p=>[robot[0]-p[0],p[1],robot[1]-p[2]],wrist=side=>{const homeHand=[side*.25,1.2,.30],onPart=local([part[0]-side*.17,part[1]+.12,part[2]]);return finished?homeHand:u<2?path([[0,homeHand],[1.3,homeHand],[2,onPart]],u):u<8?onPart:path([[8,onPart],[9,homeHand],[12,homeHand]],u)};
- const completed=finished?5:i+(u>=8?1:0),phase=finished?'五项装配完成':u<1?'接收生产任务':u<2?'物料识别 / 双手接近':u<3?'双手夹取 / 提起确认':u<5?'沿墙转运':u<8?'坡面工装对准 / '+step.name:u<9?'释放 / 装配结果校验':'双手回位 / 下一项任务';return{id:'industrial',robot,yaw,right:wrist(1),left:wrist(-1),part,grasped,completed,active:i,step:step.id,phase,action:(finished?'':('步骤 '+(i+1)+' · '+step.name+' · '))+phase+' · 已完成 '+completed+'/5',installed:industrialSteps.slice(0,completed).map(x=>x.id)};
+ t=clamp(t,0,60);const finished=t>=60,i=Math.min(4,Math.floor(t/12)),u=finished?12:t-i*12,step=industrialSteps[i],a=step.source,b=step.target,home=[0,.06],sourceBase=[a[0],.06],destBase=[b[0],.06];
+ const robot=finished?home:path([[0,home],[1.3,sourceBase],[3,sourceBase],[5,destBase],[9,destBase],[12,home]],u),yaw=0;
+ const part=path([[0,a],[2,a],[3,[a[0],1.36,a[2]]],[5,[b[0],1.36,b[2]]],[8,b],[12,b]],u),grasped=!finished&&u>=2&&u<8;
+ const local=p=>[p[0]-robot[0],p[1],p[2]-robot[1]],wrist=side=>{const homeHand=[side*.25,1.2,.30],onPart=local([part[0]+side*.17,part[1]+.12,part[2]]);return finished?homeHand:u<2?path([[0,homeHand],[1.3,homeHand],[2,onPart]],u):u<8?onPart:path([[8,onPart],[9,homeHand],[12,homeHand]],u)};
+ const completed=finished?5:i+(u>=8?1:0),wiringConnected=completed===5,headlightOn=wiringConnected,lampIntensity=wiringConnected?clamp((t-56)*2,0,1):0,phase=finished?'五项装配完成':wiringConnected?'线束连接确认 / 大灯点亮':u<1?'接收生产任务':u<2?'前端物料识别 / 双手接近':u<3?'双手夹取 / 提起确认':u<5?'向后端装配区转运':u<8?'支架模组装配 / '+step.name:u<9?'释放 / 装配结果校验':'双手回位 / 下一项任务';return{id:'industrial',robot,yaw,right:wrist(1),left:wrist(-1),part,grasped,completed,active:i,step:step.id,phase,wiringConnected,headlightOn,lampIntensity,action:(finished?'':('步骤 '+(i+1)+' · '+step.name+' · '))+phase+' · 已完成 '+completed+'/5'+(headlightOn?' · 大灯已点亮':''),installed:industrialSteps.slice(0,completed).map(x=>x.id)};
 }
 d.industrialLayout=industrialLayout;d.assemblySurface=assemblySurface;
 d.collectorActor='human';d.collectionPose=t=>{const p=prior('data-platform',t),left=path([[0,[-.23,1.02,.36]],[2,[-.70,.99,.82]],[4,[-.70,1.19,.82]],[6,[0,1.34,.82]],[8,[.70,1.19,.82]],[10,[.70,.99,.82]],[12,[-.23,1.02,.36]]],t);return{...p,actor:'human',left}};
 d.industrialSteps=industrialSteps;
-Object.assign(d.zones.find(z=>z.id==='industrial'),{name:'工业长程 · 汽车部件装配',narration:'参考 Figure 在宝马工厂的部件装配场景。人形机器人从五类物料位取件，依次完成车内零部件、盖板、车身钣金件、车灯电池及车灯线束装配。双手完成取件、转运、工装对准、定位安装和状态校验，形成连续五步任务。车辆侧框贴墙展示，机器人在前方沿墙移动，通过浅进深坡面桌面连续完成装配任务。',steps:industrialSteps.map(x=>x.name)});
+Object.assign(d.zones.find(z=>z.id==='industrial'),{name:'工业长程 · 汽车部件装配',narration:'参考 Figure 在宝马工厂的部件装配场景。机器人背靠浅色墙面、面对观众，在平整桌面作业。前端五类物料盒供料，靠机器人侧预置待装配支架模组。机器人从前端取件，向后端支架依次安装车内零部件、盖板、车身钣金件和车灯电池，最后连接大灯总成线束；连接确认后大灯亮起，展示连续五步任务的完整结果。',steps:industrialSteps.map(x=>x.name)});
 Object.assign(d,{catalog,precisionCatalog,binDefs,setPrecisionOrder,getPrecisionOrder:()=>precisionOrder.slice(),densePose,precisionPose,sortingPose,multiPose,roomDestinations,roomSlot,getRoomState,queueRoomTask,scatterRoom,roomPose,commitRoom,industrialPose});
 d.demoPose=(id,t)=>id==='multi'?multiPose(t):id==='tidy'?roomPose(t):id==='industrial'?industrialPose(t):id==='data-platform'?d.collectionPose(t):prior(id,t);d.duration=id=>id==='multi'?260:id==='tidy'?Math.max(8,roomTasks.length*8):id==='industrial'?60:0;
 Object.assign(d.zones.find(z=>z.id==='multi'),{name:'一脑多形 · 广度 → 精度 → 协同',narration:'三台设备共用同款 T0 夹爪与同一模型体系。设备一是想抓什么抓什么的单机械臂密集抓取台，约 50 个 SKU 从左框转移至右框。设备二由 H1 接收 iPad 的 1–3 件目标指令，柔顺夹取困难物品。设备三以双机械臂和传送带连续识别、分配任务并分类放置。',steps:['广度 · 万物可抓','精度 · 指定即抓','协同 · 各归其位']});Object.assign(d.zones.find(z=>z.id==='tidy'),{name:'房间整理 · 指令收纳',narration:'透明生活空间内，H1 根据 iPad 指令整理遥控器、茶杯、书本、花瓶、钥匙、果盘、抱枕、毛毯、盲盒、玩偶与零食。将控制界面的物品拖到茶几、沙发、置物架或收纳篮，随后播放演示，物品与三维场景保持同步。',steps:['接收 iPad 指令','目标识别与任务分配','移动抓取','分类归位','状态更新']});if(typeof module!=='undefined')module.exports=d;

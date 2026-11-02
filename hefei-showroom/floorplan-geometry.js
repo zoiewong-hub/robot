@@ -5,6 +5,7 @@ function buildFloorplanWallSections(){const fp=ShowroomData.floorplan,outline=fp
 buildRevisedFloor=function(){return build(()=>{planPrism(ShowroomData.floorplan.outer,-.24,.012,[.945,.94,.935])})};
 buildRevisedArchitecture=function(){const fp=ShowroomData.floorplan,l=ShowroomData.layout,p=fp.point;return build(()=>{
  const wall=fp.exhibitWall;arcWall(wall.radius,wall.start,wall.end,0,3.6,.16,[.945,.94,.955]);arcWall(wall.radius-.11,wall.start,wall.end,3.47,.025,.022,C.lilac);
+ for(let i=1;i<fp.demoBackdrop.length;i++){const a=fp.demoBackdrop[i-1],b=fp.demoBackdrop[i];softWall(a,b,3.35,[.945,.94,.955],.16);segment([a[0],3.23,a[1]],[b[0],3.23,b[1]],.012,C.lilac)}
  softWall(p(595,223),p(595,616),3.35,[.945,.94,.955],.14);
  const w=l.warehouse;roundedRoom(w.x,w.z,w.width,w.depth,{door:'east',doorZ:w.doorZ,height:2.8});for(const z of [w.door[1]-.89,w.door[1]+.89])roundedBox(w.door[0],1.25,z,.14,2.5,.10,.045,C.white);roundedBox(w.door[0],2.52,w.door[1],.15,.16,1.94,.06,[.83,.76,.94]);
  const e=p(975,95);for(const x of [e[0]-1.8,e[0]+1.8])curvedBlock(x,1.60,e[1],.13,3.2,.22,.06,0,[.80,.74,.90]);curvedBlock(e[0],3.18,e[1],3.7,.15,.22,.06,0,[.80,.74,.90]);

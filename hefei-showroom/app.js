@@ -1,7 +1,7 @@
 'use strict';
 const state={current:'overview',overview:true,demoTime:0,playing:false,auto:false,clock:0,explosion:1,system:1,guide:{pos:D.guideWaypoint('entrance'),yaw:Math.PI,moving:false,path:[],index:0},narrationTime:0};
 const groupNames={welcome:'欢迎来到零次方',company:'企业概况',ai:'AI 基建',hardware:'硬件展示',api:'具身技术 / 抓取放置 API',agent:'具身技术 / 原子能力 + 物理 agent',scenario:'具身技术 / 场景作业',support:'会议与附属空间'};
-const duration=id=>D.duration?.(id)||({warehouse:20,coffee:10,tidy:14,shop:12,ai:12,multi:18}[id]||12);
+const duration=id=>D.duration?.(id)||({warehouse:20,tidy:14,shop:12,ai:12,multi:18}[id]||12);
 const camera={eye:[-6,42,45],target:[-7,0,4],fov:.76},cameraGoal={eye:camera.eye.slice(),target:camera.target.slice()};
 let lastNow=performance.now(),frameNumber=0,shadowDirty=true,manualCamera=false,needsDraw=true,autoWait=0;
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -13,7 +13,7 @@ function stationCamera(id,immediate=false){camera.fov=id==='multi'?1.10:.76;cons
  else if(id==='entrance'){e=pointFrame(f,.7,2.8,5.4);t=pointFrame(f,0,1.0,0)}
  else if(id==='selfie'){e=pointFrame(f,.6,2.6,mobile?8:5.8);t=pointFrame(f,0,1.45,-.20)}
  else if(id==='products'){e=pointFrame(f,-1.0,3.8,mobile?8.5:5.6);t=pointFrame(f,0,1.1,.15)}
- else if(id==='multi'){e=pointFrame(f,.1,mobile?11.5:3.8,3.6);t=pointFrame(f,.2,1.0,.5)}
+ else if(id==='multi'){e=pointFrame(f,.1,mobile?11.5:3.8,3.6);t=pointFrame(f,.2,1.45,-.45)}
  else if(id==='industrial'){e=pointFrame(f,-.6,3.1,mobile?8.5:5.8);t=pointFrame(f,0,1.0,.35)}
  else if(id==='hanging'){e=pointFrame(f,1.6,3.15,mobile?9:6.7);t=pointFrame(f,0,1.4,0)}
  else if(id==='algorithm'){e=pointFrame(f,.25,2.35,mobile?9.5:6.0);t=pointFrame(f,0,1.7,-.55)}
@@ -55,7 +55,7 @@ function tick(now){const dt=Math.min((now-lastNow)/1000,.12);lastNow=now;if(!doc
  if(frameNumber%8===0&&state.playing)refreshUI();updateBubble();}
  requestAnimationFrame(tick);
 }
-window.showroom={selectZone:(id,options={})=>selectZone(typeof id==='number'?D.route[id]:id,options),getState:()=>({revision:'oct23-local-review',version:'exhibit-corrections-oct30-r7',floorplan:D.floorplan.version,route:D.route.slice(),graspOrder:D.getGraspOrder(),precisionOrder:D.getPrecisionOrder(),room:D.roomPose(state.demoTime),industrial:D.industrialPose(state.demoTime),multiPose:D.multiPose(state.demoTime),detailView:state.detailView||null,dancer:window.centralDancerState||null,localOnly:true,current:state.current,playing:state.playing,demoTime:state.demoTime,auto:state.auto,guide:JSON.parse(JSON.stringify(state.guide)),system:state.system,platformStatus:D.platformStatus(state.demoTime),geometry:LocalScene.geometry,layout:D.layout,guideRoute:D.routeGuide(D.guideWaypoint('entrance'),D.guideWaypoint('warehouse')),systems:D.systems.map(s=>s.name),demos:D.demos.map(z=>z.id),labels:labels3D.map(x=>x.text),screens:screenPanels.map(p=>p.system).filter(Boolean),camera:JSON.parse(JSON.stringify(camera))}),setGraspOrder:order=>{D.setGraspOrder(order);syncOrderFields();state.demoTime=0;state.playing=false;shadowDirty=true;needsDraw=true;refreshUI()},setDemoTime:t=>{state.demoTime=t;state.playing=false;shadowDirty=true;needsDraw=true;refreshUI()},setPlaying:p=>{state.playing=p;needsDraw=true;refreshUI()},advanceGuide:seconds=>{advanceGuide(seconds);needsDraw=true},getDemoPose:(id,t)=>D.demoPose(id,t),getWebGLError:()=>gl.getError()};
+window.showroom={selectZone:(id,options={})=>selectZone(typeof id==='number'?D.route[id]:id,options),getState:()=>({revision:'oct23-local-review',version:'backdrop-room-nov02-r8',floorplan:D.floorplan.version,route:D.route.slice(),graspOrder:D.getGraspOrder(),precisionOrder:D.getPrecisionOrder(),room:D.roomPose(state.demoTime),industrial:D.industrialPose(state.demoTime),multiPose:D.multiPose(state.demoTime),detailView:state.detailView||null,dancer:window.centralDancerState||null,localOnly:true,current:state.current,playing:state.playing,demoTime:state.demoTime,auto:state.auto,guide:JSON.parse(JSON.stringify(state.guide)),system:state.system,platformStatus:D.platformStatus(state.demoTime),geometry:LocalScene.geometry,layout:D.layout,guideRoute:D.routeGuide(D.guideWaypoint('entrance'),D.guideWaypoint('warehouse')),systems:D.systems.map(s=>s.name),demos:D.demos.map(z=>z.id),labels:labels3D.map(x=>x.text),screens:screenPanels.map(p=>p.system).filter(Boolean),camera:JSON.parse(JSON.stringify(camera))}),setGraspOrder:order=>{D.setGraspOrder(order);syncOrderFields();state.demoTime=0;state.playing=false;shadowDirty=true;needsDraw=true;refreshUI()},setDemoTime:t=>{state.demoTime=t;state.playing=false;shadowDirty=true;needsDraw=true;refreshUI()},setPlaying:p=>{state.playing=p;needsDraw=true;refreshUI()},advanceGuide:seconds=>{advanceGuide(seconds);needsDraw=true},getDemoPose:(id,t)=>D.demoPose(id,t),getWebGLError:()=>gl.getError()};
 
 const dots=$('#tourDots');D.route.forEach((id,i)=>{const b=document.createElement('button');b.className='tour-dot';b.setAttribute('aria-label','前往'+zone(id).name);b.onclick=()=>{state.auto=false;selectZone(id)};dots.append(b)});
 const oldRefreshUI=refreshUI;refreshUI=function(){oldRefreshUI();$('#tourDots').querySelectorAll('button').forEach((b,i)=>{const active=D.route[i]===state.current;b.classList.toggle('active',active);b.setAttribute('aria-current',active?'step':'false')})};

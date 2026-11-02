@@ -90,9 +90,6 @@ const cushionMesh=build(()=>roundedBox(0,0,0,.40,.20,.37,.08,[.66,.56,.72]));
 const boltMesh=build(()=>{cyl(0,0,0,.027,.13,C.metal,16);cyl(0,.074,0,.052,.022,C.metal,6)});boltMesh.finish=.8;
 const nutMesh=build(()=>{cyl(0,0,0,.056,.037,C.metal,6);cyl(0,.020,0,.023,.003,C.dark,24)});nutMesh.finish=.8;
 const objectMesh=build(()=>roundedBox(0,0,0,.18,.18,.15,.025,color.sand));
-const cupMeshNew=build(()=>{cyl(0,.10,0,.095,.20,C.white,32,.12);cyl(0,.202,0,.103,.004,[.22,.12,.06])});
-const lidMeshNew=build(()=>{cyl(0,0,0,.125,.025,C.cream);cyl(0,.015,0,.105,.015,C.white)});
-const coffeeStreamMesh=build(()=>cyl(0,0,0,.008,.12,[.25,.14,.065]));
 const tapeMesh=build(()=>box(0,0,0,.055,.008,.53,C.cream));
 const flapMesh=build(()=>box(0,0,0,.31,.015,.53,C.wood));
 const armBaseNew=build(()=>{cyl(0,.03,0,.12,.06,C.dark);cyl(0,.14,0,.08,.22,C.white)});
@@ -126,13 +123,12 @@ function drawDemo(id,time){const f=frames[id],t=time,p=D.demoPose(id==='ai'?'dat
  if(id==='sorting'){obj(boltMesh,p.boltPosition);obj(nutMesh,p.nutPosition);for(let i=0;i<3;i++){obj(boltMesh,[-.25+i*.18,.90,1.12]);obj(nutMesh,[-.25+i*.18,.90,.97])}}
  if(id==='tidy'){obj(clothMesh,p.cloth);obj(cushionMesh,p.cushion)}
  if(id==='packing'){obj(objectMesh,p.item,.80);const flapY=1.115,angle=(1-p.flap)*Math.PI/2;for(const side of [-1,1]){const center=.20+side*(.31-.155*Math.cos(angle)),height=flapY+.155*Math.sin(angle),rotation=-side*angle,c=Math.cos(rotation),ss=Math.sin(rotation),rz=new Float32Array([c,ss,0,0,-ss,c,0,0,0,0,1,0,0,0,0,1]);draw(flapMesh,mul(mul(matFrame(f),model(center,height,.8)),rz));}if(p.sealed)obj(tapeMesh,[.20,1.13,.8])}
- if(id==='coffee'){obj(cupMeshNew,p.cup);if(p.lid)obj(lidMeshNew,[p.cup[0],p.cup[1]+.217,p.cup[2]]);if(p.stream){obj(coffeeStreamMesh,[.60,1.105,-.05])}}
  if(id==='shop'){obj(objectMesh,p.item,.7);obj(shoppingBagMesh,t<8?[1.0,.95,.38]:[p.item[0],p.item[1]-.10,p.item[2]]);}
 }
 function drawOpaqueScene(state){
  draw(floorMesh);for(const section of wallSections){if(state.overview&&Math.cos(section.angle)*eye[0]+Math.sin(section.angle)*eye[2]>0)continue;draw(section.mesh)}draw(architecturalMesh);draw(furnitureMesh);draw(annexMesh);draw(demoHeaders);draw(displayFixtures);draw(explodedLabelMesh);draw(mapInteractionFixtures);
  draw(centralBaseMesh);if(centralWallVisible(state))draw(centralMesh);drawCentralInstallation(state);
- draw(legacyCoffee,matFrame(frames.coffee));draw(legacyShop,matFrame(frames.shop));drawExploded(state.explosion);drawProducts();
+ draw(legacyShop,matFrame(frames.shop));drawExploded(state.explosion);drawProducts();
  for(const id of ['ai',...D.demos.map(z=>z.id)])drawDemo(id,id===state.current?state.demoTime:0);
  const g=state.guide;h1(model(g.pos[0],0,g.pos[1],1,1,1,g.yaw),[.23,1.02,.35],[-.23,1.02,.35]);
  if(!shadowPass){draw(lightMesh,I(),.95);draw(corridorLighting,I(),.95);}
