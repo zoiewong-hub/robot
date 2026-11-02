@@ -48,7 +48,7 @@ const furnitureMesh=build(()=>{
 });
 const roomGlass=build(()=>atFrame(frames.tidy,()=>{for(const x of [-2.25,2.25])box(x,1.25,0,.012,2.5,3.4,[.50,.76,.84]);for(const z of [-1.70,1.70])box(0,1.25,z,4.5,2.5,.012,[.50,.76,.84]);box(0,2.5,0,4.5,.012,3.4,[.50,.76,.84])}));roomGlass.opacity=.10;
 const annexMesh=buildRevisedAnnex();
-const demoHeaders=build(()=>{for(const z of D.zones){if(['welcome','company','support'].includes(z.group)||z.id==='multi')continue;const f=frames[z.id];if(z.id==='warehouse'){addLabel('惠宜选前置仓',f,0,3.45,-3.1,4.8,.48,{light:true});continue}addLabel(z.name.replace('AI 基建 · 六套系统','六套系统 · 全流程闭环'),f,0,z.id==='algorithm'?3.22:2.66,-.65,z.id==='products'?5.1:3.2,.26,{light:true})}
+const demoHeaders=build(()=>{for(const z of D.zones){if(['welcome','company','support'].includes(z.group)||['multi','industrial'].includes(z.id))continue;const f=frames[z.id];if(z.id==='warehouse'){addLabel('惠宜选前置仓',f,0,3.45,-3.1,4.8,.48,{light:true});continue}addLabel(z.name.replace('AI 基建 · 六套系统','六套系统 · 全流程闭环'),f,0,z.id==='algorithm'?3.22:2.66,-.65,z.id==='products'?5.1:3.2,.26,{light:true})}
  for(const sign of D.floorplan.signs)addLabel(sign.text,sign.f,0,sign.y,-.65,sign.w,.22,{light:true});
  addLabel('ZERITH · 零次方',{x:0,z:-11.14,rot:0},0,3.16,0,4.5,.28,{light:true});
 
@@ -118,6 +118,7 @@ function drawDemo(id,time){const f=frames[id],t=time,p=D.demoPose(id==='ai'?'dat
  if(id==='tidy'){drawRoomOperation(time);return}
  if(id==='industrial'){drawIndustrialOperation(time);return}
  if(id==='hanging'){drawHangingInteraction(time);return}
+ if(id==='ai'){drawCollectionHuman(time);return}
  if(id==='warehouse'){const next=D.demoPose(id,Math.min(20,t+.04)).robot,dx=next[0]-p.robot[0],dz=next[1]-p.robot[1],heading=p.heading??(Math.hypot(dx,dz)>.001?Math.atan2(dx,dz):(t<7?-Math.PI/2:Math.PI/2)),m=mul(base,model(0,0,0,1,1,1,heading));h1(m,p.right,p.left);const first=t<6?p.right:p.left;if(p.carrying)draw(objectMesh,mul(m,model(first[0],first[1]-.15,first[2],1,1,1)));else if(t<4.5)draw(objectMesh,matFrame(f,.30,1.0,.50));if(p.secondItem)draw(objectMesh,mul(m,model(p.right[0],p.right[1]-.15,p.right[2],.8,.8,.8)));else if(t<12.5)draw(objectMesh,matFrame(f,-.30,1.0,-.50,.8));if(p.deposited){draw(objectMesh,matFrame(f,.37,.93,-4.60));draw(objectMesh,matFrame(f,.25,.93,-4.35,.8));}return}
  h1(base,p.right,p.left);
  const obj=(m,pt,s=1)=>draw(m,mul(matFrame(f),model(...pt,s,s,s)));

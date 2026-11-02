@@ -1,10 +1,15 @@
 {
-  "version": "architectural-plan-oct29-r6",
-  "release": "2026-10-29",
+  "version": "exhibit-corrections-oct30-r7",
+  "release": "2026-10-30",
   "routeStops": 16,
   "demos": 7,
   "metricCalibrated": true,
   "gridSquareMetres": 1,
   "curvedScreens": true,
-  "dualRandomDropRigs": true
+  "dualRandomDropRigs": true,
+  "humanCollector": true,
+  "horizontalDynamicWorktops": 2,
+  "ringConveyor": true,
+  "wallSlopeAssembly": true,
+  "compactDefaultGuide": true
 }
